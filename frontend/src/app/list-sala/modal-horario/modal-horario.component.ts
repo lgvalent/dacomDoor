@@ -1,30 +1,18 @@
 import { Router } from '@angular/router';
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
-import { DialogComponent, DialogService } from 'ng2-bootstrap-modal';
-import { DatabaseService } from './../../servicos/database.service';
+import { Component, OnInit } from '@angular/core';
 
-export interface ConfirmModel {
-  title: string;
-  horarios: any;
-  index: number;
-  tipo: string;
-  buttonText: string;
-  salaId: any;
-}
+import { BsModalRef } from 'ngx-bootstrap/modal/bs-modal-ref.service';
+
+import { DatabaseService } from './../../servicos/database.service';
 
 @Component({
   selector: 'app-modal-horario',
   templateUrl: './modal-horario.component.html',
   styleUrls: ['./modal-horario.component.css'],
-  encapsulation: ViewEncapsulation.None
 })
-export class ModalHorarioComponent extends DialogComponent<
-  ConfirmModel,
-  boolean
-> implements ConfirmModel, OnInit {
+export class ModalHorarioComponent implements OnInit {
   title: string;
-  tipo: string;
-  buttonText: string;
+  mode: string;
   salaId: any;
   horarios: any;
   index: number;
@@ -38,22 +26,23 @@ export class ModalHorarioComponent extends DialogComponent<
   ismeridian = false;
 
   constructor(
-    dialogService: DialogService,
     private dbService: DatabaseService,
+    public bsModalRef: BsModalRef,
     private router: Router
-  ) {
-    super(dialogService);
-  }
+  ) {}
 
-  ngOnInit() {
+  ngOnInit() {}
+
+  getAttribute(attr) {
     this.horario = this.index !== undefined ? this.horarios[this.index] : {};
+    return this.horario !== undefined ? this.horario[attr] : '';
   }
 
   private kickUser() {
     localStorage.removeItem('token');
     this.router
       .navigate([''])
-      .then(() => this.close())
+      .then(() => this.bsModalRef.hide())
       .then(() => alert('Sua sessão expirou, logue novamente!'));
   }
 
@@ -71,9 +60,9 @@ export class ModalHorarioComponent extends DialogComponent<
         tipo_user: formModalHora.value.tipo
       };
 
-      if (this.tipo === 'editar') {
+      if (this.mode === 'Editar') {
         this.editarHorario(this.horario.id, this.body);
-      } else if (this.tipo === 'novo') {
+      } else if (this.mode === 'Cadastrar') {
         this.cadastrarHorario(this.body);
       }
     }
@@ -86,7 +75,7 @@ export class ModalHorarioComponent extends DialogComponent<
         .then(res => {
           alert('Horário cadastrado com sucesso');
           this.horarios.push(res);
-          this.close();
+          this.bsModalRef.hide();
         })
         .catch(err => this.handleError(err.status));
     } else {
@@ -101,7 +90,7 @@ export class ModalHorarioComponent extends DialogComponent<
         .then(res => {
           alert('Horário alterado com sucesso!');
           this.horarios[this.index] = res;
-          this.close();
+          this.bsModalRef.hide();
         })
         .catch(err => this.handleError(err.status));
     } else {
@@ -115,7 +104,7 @@ export class ModalHorarioComponent extends DialogComponent<
     } else if (error === 400) {
       alert('Ops, há algo errado nesta página ou configurações do servidor');
     } else if (error === 401) {
-      this.close();
+      this.bsModalRef.hide();
       localStorage.removeItem('token');
       this.router.navigate(['']).then(() => {
         alert('Credenciais inválidas');

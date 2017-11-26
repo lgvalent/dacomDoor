@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
 import { HomeModule } from '../home/home.module';
+import { ModalModule } from 'ngx-bootstrap/modal';
 import { TooltipModule } from 'ngx-bootstrap/tooltip';
 import { TimepickerModule } from 'ngx-bootstrap/timepicker';
 
@@ -15,6 +16,7 @@ import { ModalHorarioComponent } from './modal-horario/modal-horario.component';
     CommonModule,
     FormsModule,
     HomeModule,
+    ModalModule.forRoot(),
     TooltipModule.forRoot(),
     TimepickerModule.forRoot()
   ],

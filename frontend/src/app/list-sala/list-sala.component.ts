@@ -4,7 +4,9 @@ import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { ModalSalaComponent } from './modal-sala/modal-sala.component';
 import { ModalHorarioComponent } from './modal-horario/modal-horario.component';
 
-import { DialogService } from 'ng2-bootstrap-modal';
+import { BsModalService } from 'ngx-bootstrap/modal';
+import { BsModalRef } from 'ngx-bootstrap/modal/bs-modal-ref.service';
+
 import { DatabaseService } from '../servicos/database.service';
 
 @Component({
@@ -16,11 +18,11 @@ export class ListSalaComponent implements OnInit {
   @ViewChild('button') btn: ElementRef;
   id = -1;
   salas: any = [];
-  options = ['Dia'];
+  bsModalRef: BsModalRef;
 
   constructor(
     private dbService: DatabaseService,
-    private dialogService: DialogService,
+    private modalService: BsModalService,
     private router: Router
   ) {}
 
@@ -72,17 +74,15 @@ export class ListSalaComponent implements OnInit {
         .then(() => alert('Sua sessão expirou, logue novamente!'));
       return;
     }
-    const disposable = this.dialogService
-      .addDialog(ModalSalaComponent, {
-        title: 'Sala - ' + mode,
-        sala: id >= 0 ? this.salas[id] : {},
-        salas: this.salas,
-        mode: mode
-      })
-      .subscribe(isConfirmed => {});
+
+    this.bsModalRef = this.modalService.show(ModalSalaComponent);
+    this.bsModalRef.content.title = 'Sala - ' + mode;
+    this.bsModalRef.content.sala = id >= 0 ? this.salas[id] : {};
+    this.bsModalRef.content.salas = this.salas;
+    this.bsModalRef.content.mode = mode;
   }
 
-  novoHorario() {
+  showModalHorario(index, mode = 'Editar') {
     if (this.dbService.checkToken()) {
       localStorage.removeItem('token');
       this.router
@@ -90,35 +90,13 @@ export class ListSalaComponent implements OnInit {
         .then(() => alert('Sua sessão expirou, logue novamente!'));
       return;
     }
-    const Disposable = this.dialogService
-      .addDialog(ModalHorarioComponent, {
-        tipo: 'novo',
-        title: 'Horário - Cadastro',
-        buttonText: 'Cadastrar',
-        salaId: this.salas[this.id].id,
-        horarios: this.salas[this.id].horarios
-      })
-      .subscribe(isConfirmed => {});
-  }
 
-  editarHorario(id) {
-    if (this.dbService.checkToken()) {
-      localStorage.removeItem('token');
-      this.router
-        .navigate([''])
-        .then(() => alert('Sua sessão expirou, logue novamente!'));
-      return;
-    }
-    const Disposable = this.dialogService
-      .addDialog(ModalHorarioComponent, {
-        tipo: 'editar',
-        title: 'Horário - Editar',
-        buttonText: 'Editar',
-        salaId: this.salas[this.id].id,
-        horarios: this.salas[this.id].horarios,
-        index: id
-      })
-      .subscribe(isConfirmed => {});
+    this.bsModalRef = this.modalService.show(ModalHorarioComponent);
+    this.bsModalRef.content.mode = mode;
+    this.bsModalRef.content.title = 'Horário - ' + mode,
+    this.bsModalRef.content.salaId = this.salas[this.id].id,
+    this.bsModalRef.content.horarios = this.salas[this.id].horarios,
+    this.bsModalRef.content.index = index;
   }
 
   deletarHorario(id, id_horario) {

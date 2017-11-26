@@ -1,10 +1,12 @@
 import { Router } from '@angular/router';
 import { JwtHelper } from 'angular2-jwt';
 import { Component, OnInit } from '@angular/core';
-import { DialogService } from 'ng2-bootstrap-modal/dist';
 
-import { DatabaseService } from '../servicos/database.service';
+import { BsModalService } from 'ngx-bootstrap/modal';
+import { BsModalRef } from 'ngx-bootstrap/modal/bs-modal-ref.service';
+
 import { ModalAdminComponent } from './modal-admin/modal-admin.component';
+import { DatabaseService } from '../servicos/database.service';
 
 @Component({
   selector: 'app-list-admin',
@@ -18,11 +20,13 @@ export class ListAdminComponent implements OnInit {
     message: ''
   };
 
+  bsModalRef: BsModalRef;
+
   admins = [];
   constructor(
     private dbService: DatabaseService,
-    private dialogService: DialogService,
     private jwtHelper: JwtHelper,
+    private modalService: BsModalService,
     private router: Router
   ) {}
 
@@ -40,18 +44,11 @@ export class ListAdminComponent implements OnInit {
   }
 
   showModal(index, mode = 'Editar') {
-    const disposable = this.dialogService
-      .addDialog(ModalAdminComponent, {
-        admin: index >= 0 ? this.admins[index] : {},
-        admins: this.admins,
-        index: index,
-        mode: mode
-      })
-      .subscribe(response => {
-        if (response) {
-          this.showAlert('success', response.message);
-        }
-      });
+    this.bsModalRef = this.modalService.show(ModalAdminComponent);
+    this.bsModalRef.content.admin = index >= 0 ? this.admins[index] : {};
+    this.bsModalRef.content.admins = this.admins;
+    this.bsModalRef.content.index = index;
+    this.bsModalRef.content.mode = mode;
   }
 
   apagarAdmin(index) {

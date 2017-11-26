@@ -1,10 +1,11 @@
+import { Router } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
-import { DialogService } from 'ng2-bootstrap-modal';
+
+import { BsModalService } from 'ngx-bootstrap/modal';
+import { BsModalRef } from 'ngx-bootstrap/modal/bs-modal-ref.service';
 
 import { DatabaseService } from '../servicos/database.service';
 import { ModalUserComponent } from './modal-user/modal-user.component';
-
-import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-list-user',
@@ -15,9 +16,10 @@ export class ListUserComponent implements OnInit {
   users: any = [];
   options = ['Todos', 'Nome', 'Sala', 'Tipo'];
 
+  bsModalRef: BsModalRef;
   constructor(
     private dbService: DatabaseService,
-    private dialogService: DialogService,
+    private modalService: BsModalService,
     private router: Router
   ) {}
 
@@ -34,7 +36,7 @@ export class ListUserComponent implements OnInit {
         .deletarRecurso('usuarios', this.users[id].id)
         .then(res => {
           this.users.splice(id, 1);
-          alert('Usuário Apagado com Sucesso!!');
+          alert('Usuário apagado com sucesso!');
         })
         .catch(err => this.handleError(err.status));
     }
@@ -48,15 +50,13 @@ export class ListUserComponent implements OnInit {
         .then(() => alert('Sua sessão expirou, logue novamente!'));
       return;
     }
-    const disposable = this.dialogService
-      .addDialog(ModalUserComponent, {
-        title: 'Usuário - ' + mode,
-        user: index >= 0 ? this.users[index] : {},
-        mode: mode,
-        users: this.users,
-        index: index
-      })
-      .subscribe(isConfirmed => {});
+
+    this.bsModalRef = this.modalService.show(ModalUserComponent);
+    this.bsModalRef.content.title = 'Usuário - ' + mode;
+    this.bsModalRef.content.user = index >= 0 ? this.users[index] : {};
+    this.bsModalRef.content.mode = mode;
+    this.bsModalRef.content.users = this.users;
+    this.bsModalRef.content.index = index;
   }
 
   private handleError(error: number) {

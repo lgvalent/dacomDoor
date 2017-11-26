@@ -1,28 +1,18 @@
 import { Router } from '@angular/router';
-import { DropdownSettings } from 'angular2-multiselect-dropdown/angular2-multiselect-dropdown/multiselect.interface';
-import { IMultiSelectOption, IMultiSelectSettings, IMultiSelectTexts} from 'angular-2-dropdown-multiselect';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
-import { DialogComponent, DialogService } from 'ng2-bootstrap-modal';
+
+import { BsModalRef } from 'ngx-bootstrap/modal/bs-modal-ref.service';
+import { IMultiSelectOption, IMultiSelectSettings, IMultiSelectTexts} from 'angular-2-dropdown-multiselect';
 
 import { DatabaseService } from '../../servicos/database.service';
-
-export interface ConfirmModel {
-  title: string;
-  user: any;
-  mode: string;
-  users: any[];
-  index: any;
-}
 
 @Component({
   selector: 'app-modal-user',
   templateUrl: './modal-user.component.html',
   styleUrls: ['./modal-user.component.css'],
-  encapsulation: ViewEncapsulation.None
 })
-export class ModalUserComponent extends DialogComponent<ConfirmModel, boolean>
-  implements ConfirmModel, OnInit {
+export class ModalUserComponent implements OnInit {
   title: string;
   user: any;
   salas = [];
@@ -59,11 +49,9 @@ export class ModalUserComponent extends DialogComponent<ConfirmModel, boolean>
 
   constructor(
     private dbService: DatabaseService,
-    dialogService: DialogService,
+    public bsModalRef: BsModalRef,
     private router: Router
-  ) {
-    super(dialogService);
-  }
+  ) {}
 
   ngOnInit() {
     this.fillSelect();
@@ -73,8 +61,12 @@ export class ModalUserComponent extends DialogComponent<ConfirmModel, boolean>
     localStorage.removeItem('token');
     this.router
       .navigate([''])
-      .then(() => this.close())
+      .then(() => this.bsModalRef.hide())
       .then(() => alert('Sua sessão expirou, logue novamente!'));
+  }
+
+  getAttribute(attr) {
+    return this.user !== undefined ? this.user[attr] : '';
   }
 
   fillSelect() {
@@ -128,7 +120,7 @@ export class ModalUserComponent extends DialogComponent<ConfirmModel, boolean>
               alert('Usuário alterado com sucesso!');
               this.user = res;
               this.users[this.index] = this.user;
-              this.close();
+              this.bsModalRef.hide();
             })
             .catch(err => this.handleError(err.status));
         } else {
@@ -141,7 +133,7 @@ export class ModalUserComponent extends DialogComponent<ConfirmModel, boolean>
             .then(res => {
               this.users.push(res);
               alert('Usuário criado com sucesso!');
-              this.close();
+              this.bsModalRef.hide();
             })
             .catch(err => this.handleError(err.status));
         } else {
@@ -157,7 +149,7 @@ export class ModalUserComponent extends DialogComponent<ConfirmModel, boolean>
     } else if (error === 400) {
       alert('Ops, há algo errado nesta página ou configurações do servidor');
     } else if (error === 401) {
-      this.close();
+      this.bsModalRef.hide();
       localStorage.removeItem('token');
       this.router.navigate(['']).then(() => {
         alert('Credenciais inválidas');
@@ -168,4 +160,5 @@ export class ModalUserComponent extends DialogComponent<ConfirmModel, boolean>
       alert('Erro de conexão, tente novamente!');
     }
   }
+
 }

@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
 import { HomeModule } from '../home/home.module';
+import { ModalModule } from 'ngx-bootstrap/modal';
 
 import { TooltipModule } from 'ngx-bootstrap';
 import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
@@ -18,7 +19,8 @@ import { ModalUserComponent } from './modal-user/modal-user.component';
     HomeModule,
     MultiselectDropdownModule,
     BsDropdownModule.forRoot(),
-    TooltipModule.forRoot()
+    TooltipModule.forRoot(),
+    ModalModule.forRoot()
   ],
   declarations: [ListUserComponent, ModalUserComponent],
   exports: [ListUserComponent, ModalUserComponent],

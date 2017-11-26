@@ -38,7 +38,7 @@
     <h3>Horários
         <div class="btn-group">
             <button class="btn btn-success btn-sm"
-              (click)="novoHorario(id)" [disabled]="id === -1" style="border-radius: 4px;">
+              (click)="showModalHorario(id, 'Cadastrar')" [disabled]="id === -1" style="border-radius: 4px;">
               Novo <span class="glyphicon glyphicon-plus"></span>
             </button>
             <button class="btn btn-danger btn-sm"
@@ -64,7 +64,7 @@
           <td>{{ horario.hora_fim }}</td>
           <td>{{ horario.tipo_user }}</td>
           <td>
-            <button class="btn btn-primary" (click)='editarHorario(idx)'
+            <button class="btn btn-primary" (click)='showModalHorario(idx)'
               tooltip="Editar horário">
               <span class="glyphicon glyphicon-pencil"></span>
             </button>

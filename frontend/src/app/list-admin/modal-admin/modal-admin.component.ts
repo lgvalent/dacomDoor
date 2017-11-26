@@ -1,34 +1,26 @@
 import { Router } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
-import { DialogComponent, DialogService } from 'ng2-bootstrap-modal';
-import { DatabaseService } from './../../servicos/database.service';
 
-export interface ConfirmModel {
-  mode: string;
-  admin?: any;
-  admins: any;
-  index?: any;
-}
+import { BsModalRef } from 'ngx-bootstrap/modal/bs-modal-ref.service';
+
+import { DatabaseService } from './../../servicos/database.service';
 
 @Component({
   selector: 'app-modal-admin',
   templateUrl: './modal-admin.component.html',
   styleUrls: ['./modal-admin.component.css']
 })
-export class ModalAdminComponent extends DialogComponent<ConfirmModel, any>
-  implements ConfirmModel, OnInit {
+export class ModalAdminComponent implements OnInit {
   mode: string;
   admin?: any;
   admins: any;
   index?: any;
 
   constructor(
-    dialogService: DialogService,
     private dbService: DatabaseService,
+    public bsModalRef: BsModalRef,
     private router: Router
-  ) {
-    super(dialogService);
-  }
+  ) {}
 
   ngOnInit() {}
 
@@ -36,8 +28,12 @@ export class ModalAdminComponent extends DialogComponent<ConfirmModel, any>
     localStorage.removeItem('token');
     this.router
       .navigate([''])
-      .then(() => this.close())
+      .then(() => this.bsModalRef.hide())
       .then(() => alert('Sua sessão expirou, logue novamente!'));
+  }
+
+  getAttribute(attr) {
+    return this.admin !== undefined ? this.admin[attr] : '';
   }
 
   onSubmit(form) {
@@ -55,10 +51,7 @@ export class ModalAdminComponent extends DialogComponent<ConfirmModel, any>
           request
             .then(res => {
               this.admins[this.index] = res;
-              this.close();
-              this.result = {
-                message: 'Administrador atualizado com sucesso!'
-              };
+              this.bsModalRef.hide();
             })
             .catch(err => this.handleError(err.status));
         } else {
@@ -70,10 +63,7 @@ export class ModalAdminComponent extends DialogComponent<ConfirmModel, any>
           request
             .then(res => {
               this.admins.push(res);
-              this.close();
-              this.result = {
-                message: 'Administrador criado com sucesso!'
-              };
+              this.bsModalRef.hide();
             })
             .catch(err => this.handleError(err.status));
         } else {
@@ -89,7 +79,7 @@ export class ModalAdminComponent extends DialogComponent<ConfirmModel, any>
     } else if (error === 400) {
       alert('Ops, há algo errado nesta página ou configurações do servidor');
     } else if (error === 401) {
-      this.close();
+      this.bsModalRef.hide();
       localStorage.removeItem('token');
       this.router.navigate(['']).then(() => {
         alert('Credenciais inválidas');

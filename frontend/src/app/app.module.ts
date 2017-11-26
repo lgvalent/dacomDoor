@@ -7,8 +7,6 @@ import { HttpClientModule } from '@angular/common/http';
 import { HttpModule } from '@angular/http';
 
 import { JwtHelper } from 'angular2-jwt';
-import { BootstrapModalModule } from 'ng2-bootstrap-modal';
-import { AngularMultiSelectModule } from 'angular2-multiselect-dropdown/angular2-multiselect-dropdown';
 
 import { routing } from './app.routing';
 
@@ -38,7 +36,6 @@ import { LoginDisabledService } from './servicos/login-disabled.service';
     ListUserModule,
     ListSalaModule,
     ListAdminModule,
-    BootstrapModalModule.forRoot({ container: document.body })
   ],
   providers: [
     JwtHelper,
