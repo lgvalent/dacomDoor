@@ -104,7 +104,11 @@ class SalaResource(Resource):
 class SalaListResource(Resource):
 	# @jwt_required()
 	def get(self):
-		query = Sala.query.filter(Sala.alive)
+		query = (
+			Sala.query
+			.filter(Sala.alive)
+			.order_by(Sala.nome)
+		)
 		salas = [sala.__dict__ for sala in query.all()]
 
 		for sala in salas:
