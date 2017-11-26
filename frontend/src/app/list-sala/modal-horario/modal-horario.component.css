@@ -1,0 +1,7 @@
+.ng-invalid.ng-touched:not(form){
+  border: 1px solid red;
+}
+
+.modal {
+  background-color: rgba(0, 0, 0, 0.6);
+}

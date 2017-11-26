@@ -1,0 +1,38 @@
+<app-home></app-home>
+
+<div class="container" *ngIf="!alertCtrl.isHide" style="border: none">
+  <alert [type]="alertCtrl.type" dismissOnTimeout="2000">{{ alertCtrl.message }} </alert>
+</div>
+<!-- <div *ngIf="admins.length===1"  class="alert alert-warning">O último administrador não pode ser removido!</div> -->
+<div class="container">
+  <h3>Administradores
+    <div class="btn-group">
+      <button class="btn btn-success btn-sm"
+        (click)="showModal(-1, 'Cadastrar')" style="border-radius: 4px;">
+        Novo <span class="glyphicon glyphicon-plus"></span>
+      </button>
+    </div>
+  </h3>
+  <table class="table table-hover">
+    <tr>
+      <th>Nome</th>
+      <th>Email</th>
+      <th>Outros</th>
+    </tr>
+    <tr *ngFor="let adm of admins; let idx = index">
+      <td>{{ adm.nome }}</td>
+      <td>{{ adm.email }}</td>
+      <td>
+        <button type="submit" class="btn btn-primary" (click)="showModal(idx)"
+          tooltip="Editar administrador">
+          <span class="glyphicon glyphicon-pencil"></span>
+        </button>
+        <button type="submit" class="btn btn-danger" (click)="apagarAdmin(idx)"
+          tooltip="Deletar administrador" [disabled]="admins.length === 1"
+        >
+          <span class="glyphicon glyphicon-trash"></span>
+        </button>
+      </td>
+    </tr>
+  </table>
+</div>

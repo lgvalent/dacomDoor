@@ -1,0 +1,10 @@
+/* You can add global styles to this file, and also import other style files */
+
+@import "../node_modules/bootstrap/dist/css/bootstrap.min.css";
+@import "../node_modules/bootstrap-select/dist/css/bootstrap-select.min.css";
+@import "../node_modules/bootstrap-select/dist/css/bootstrap-select.css";
+
+.selected-list, .select-all[_ngcontent-c3], .dropdown-list[_ngcontent-c3] ul[_ngcontent-c3],
+.dropdown-list[_ngcontent-c3], .list-area[_ngcontent-c3] {
+    width: 150px !important;
+}

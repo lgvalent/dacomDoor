@@ -1,0 +1,51 @@
+<div class="modal-dialog">
+  <div class="modal-content">
+    <div class="modal-header">
+      <button type="button" class="close" (click)="close()" >&times;</button>
+      <h4 class="modal-title">{{ title }}</h4>
+    </div>
+
+    <form #formModalHora="ngForm" (ngSubmit)="onSubmit(formModalHora)">
+      <div class="modal-body">
+        <div class="form-group"> 
+          <label>Dia da Semana:</label>
+            <select name="dia" class="form-control" [ngModel]="horario.dia" style="width: 150px" required>
+              <option style="text-transform: capitalize" *ngFor="let dia of dias" [value]="dia">{{ dia }}</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+          <label>Horário Inicio</label>
+          <input name="horarioInicio" class="form-control" 
+            type="text" required pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]"
+            placeholder="11:00:00"
+            [ngModel]="horario.hora_inicio"/>
+        </div>
+
+        <div class="form-group">            
+          <label>Horário Fim</label>
+          <input name="horarioFim" class="form-control" 
+            type="text" placeholder="23:00:00"
+            [ngModel]="horario.hora_fim" required
+            pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]"/>
+        </div>
+
+        <div class="form-group"> 
+          <label>Tipo Usuário:</label>
+            <select name="tipo" class="form-control" 
+              [ngModel]="horario.tipo_user" style="width: 150px" required>
+              <option style="text-transform: capitalize" 
+                *ngFor="let type of typeUsers" [value]="type">
+                {{ type }}
+              </option>
+            </select>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary" [disabled]="!formModalHora.valid">Confirmar</button>
+        <button type="button" class="btn btn-danger" (click)="close()" >Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>

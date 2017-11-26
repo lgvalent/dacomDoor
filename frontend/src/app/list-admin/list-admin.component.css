@@ -1,0 +1,15 @@
+.container{
+    margin-top: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.control_table{
+    overflow-y: auto;
+    max-height: 335px;
+}
+
+.bnt-delet{
+    margin-left: 3px;
+    border-radius: 4px;
+}

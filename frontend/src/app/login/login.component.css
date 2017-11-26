@@ -1,0 +1,35 @@
+.ng-invalid.ng-touched:not(form){
+  border: 1px solid red;
+}
+
+.container {
+    padding: 10%;
+    position: fixed;
+}
+
+.form-login {
+    background-color: #EDEDED;
+    padding-top: 20px;
+    padding-bottom: 30px;
+    padding-left: 30px;
+    padding-right: 30px;
+    border-radius: 25px;
+    border-color:#d2d2d2;
+    border-width: 15px;
+    box-shadow: 0 1px 0 #cfcfcf;
+}
+
+h4 { 
+ border: 0 solid #fff; 
+ border-bottom-width: 1px;
+ padding-bottom: 10px;
+ text-align: center;
+}
+
+.form-control {
+    border-radius: 10px;
+}
+
+.wrapper {
+    text-align: center;
+}

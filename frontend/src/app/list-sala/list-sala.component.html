@@ -1,0 +1,81 @@
+<app-home></app-home>
+
+<div class="container row">
+  <div class="layer_sala col-md-3">
+    <h3>Salas 
+      <div class="btn-group">
+          <button class="btn btn-success btn-sm"
+            (click)="showModal(-1, 'Cadastrar')" style="border-radius: 4px;">
+            Nova <span class="glyphicon glyphicon-plus"></span>
+          </button>
+        </div>
+    </h3>
+    <hr>
+    <div class="control_list">
+      <ul class="list-group" #button>
+        <button class="btn list-group-item li_sala"
+          *ngFor="let sala of salas; let idx = index"
+          (click)="onclick(idx)">
+            {{ sala.nome }}
+        </button>
+      </ul>      
+    </div>
+  
+    <div class="button_salas row">
+      <button class="btn btn-primary" (click)="showModal(id)" [disabled]= 'id == -1'
+        tooltip="Editar sala">
+        <span class="glyphicon glyphicon-pencil"></span>
+      </button>
+      <button class="btn btn-danger" (click)="deletarSala(id)" [disabled]= 'id == -1'
+        tooltip="Deletar sala">
+        <span class="glyphicon glyphicon-trash"></span>
+      </button>
+    </div>
+
+  </div>
+  
+  <div class="horario_sala col-md-9">
+    <h3>Horários
+        <div class="btn-group">
+            <button class="btn btn-success btn-sm"
+              (click)="novoHorario(id)" [disabled]="id === -1" style="border-radius: 4px;">
+              Novo <span class="glyphicon glyphicon-plus"></span>
+            </button>
+            <button class="btn btn-danger btn-sm"
+              (click)="deletarTodos('horarios', id)" [disabled]="id === -1" style="margin-left: 3px; border-radius: 4px;">
+              Deletar todos <span class="glyphicon glyphicon-trash"></span>
+            </button>
+          </div>
+      
+    </h3>
+    <div class="control_table">
+      <table class="table table-hover">
+        <tr>
+          <th>Dia</th>
+          <th>Horario Inicio</th>
+          <th>Horario Fim</th>
+          <th>Tipo Permitido</th>
+          <th>Outros</th>
+        </tr>
+        
+        <tr class="dados_sala" *ngFor="let horario of (id != -1 ? salas[id].horarios : []);let idx = index">
+          <td>{{ horario.dia }}</td>
+          <td>{{ horario.hora_inicio }}</td>
+          <td>{{ horario.hora_fim }}</td>
+          <td>{{ horario.tipo_user }}</td>
+          <td>
+            <button class="btn btn-primary" (click)='editarHorario(idx)'
+              tooltip="Editar horário">
+              <span class="glyphicon glyphicon-pencil"></span>
+            </button>
+            <button class="btn btn-danger"(click)='deletarHorario(idx, horario.id)'
+              tooltip="Deletar horário">
+              <span class="glyphicon glyphicon-trash"></span>
+            </button>
+          </td>
+        </tr>
+        
+      </table>
+    </div>
+  </div>
+</div>

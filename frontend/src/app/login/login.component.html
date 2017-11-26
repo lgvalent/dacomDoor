@@ -1,0 +1,33 @@
+<div class="container">
+  <form #fLogin="ngForm" (ngSubmit)="onSubmit(fLogin)">
+    <div class="row">
+      <div class="col-md-offset-4 col-md-7">
+        <div *ngIf="bool" class="alert alert-danger">
+          <p><strong>Login inválido!</strong></p>
+          <p>Verifique sua senha/login e tente novamente.</p>
+        </div>
+        <div class="form-login">
+          <h4>Controle de Portas - UTFPR</h4>
+          <input type="email" name="email" class="form-control input chat-input"
+            placeholder="Email" ngModel required email/>
+          <br>
+          <div class="input-group" #flag>
+            <input type="password" name="password" 
+              class="form-control input chat-input"
+              placeholder="Senha" ngModel required>
+            <span class="input-group-btn">
+              <button type="button" class="btn btn-default reveal" (click)="handlePassword()">
+                <span class="glyphicon glyphicon-eye-open"></span>
+              </button>
+            </span>
+          </div>
+            
+          <br>
+          <div class="wrapper">    
+            <button class="btn btn-success" [disabled]="!fLogin.valid">Entrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>  
+</div>

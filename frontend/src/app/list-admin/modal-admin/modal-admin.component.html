@@ -1,0 +1,31 @@
+<div class="modal-dialog">
+  <div class="modal-content">
+    <div class="modal-header">
+      <button type="button" class="close" (click)="close()">&times;</button>
+      <h4 class="modal-title">Administrador - {{ mode }}</h4>
+    </div>
+
+    <form #f="ngForm" (ngSubmit)="onSubmit(f)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nome</label>
+          <input name="nome" class="form-control" type="text" [ngModel]="admin.nome" required/>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input name="email" class="form-control" type="email" [ngModel]="admin.email" required email/>
+        </div>
+          <div class="form-group">
+            <label>Senha</label>
+            <input name="password" class="form-control" type="password" 
+              [ngModel]="admin.password" required/>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary" [disabled]="!f.valid">Confirmar</button>
+        <button type="button" class="btn btn-danger" (click)="close()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,83 @@
+<app-home></app-home>
+
+<div class="container" style="border: none">
+  <form #f="ngForm" (ngSubmit)="onSubmit(f)" class="form-inline" style="margin-left: 20%">
+    <div class="input-group">
+      <span class="input-group-btn">
+        <select class="form-control" style="width: 90px" 
+          required name="filter" [ngModel]="undefined">
+          <option value="undefined" disabled selected hidden>Filtro</option>
+          <option *ngFor="let opt of options" [value]="opt">{{ opt }}</option>
+        </select>
+      </span>
+      <span class="input-group-btn">
+        <input class="form-control" style="width: 400px" name="query"
+          ngModel required pattern="^[\w\s-]+$"          
+          placeholder="Pesquisar"/>
+      </span>
+      <span class="input-group-btn">
+        <button class="btn btn-primary" [disabled]="!f.valid"  tooltip="Pesquisar">
+          <span class="glyphicon glyphicon-search"></span>
+        </button>
+      </span>
+    </div>
+  </form>
+</div>
+
+
+<div class="container">
+  <h3>Usuários
+    <div class="btn-group">
+      <button class="btn btn-success btn-sm"
+        (click)="showModal(-1, 'Cadastrar')" style="border-radius: 4px;">
+        Novo <span class="glyphicon glyphicon-plus"></span>
+      </button>
+    </div>
+  </h3>
+  <div class="control_table">
+    <table class="table table-hover">
+      <tr>
+        <th>Tipo</th>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>RFID</th>
+        <th>Salas Permitidas</th>
+        <th>Outros</th>
+
+      </tr>
+      <tr *ngFor="let user of users; let idx = index">
+        <td>{{ user.tipo }}</td>
+        <td>{{ user.nome }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.rfid }}</td>
+        <td>
+          <div class="btn-group" dropdown [ngSwitch]="user.direito_acesso.length === 0">
+            <button class="btn btn-default" *ngSwitchCase="true">Nenhuma</button>
+            <button *ngSwitchDefault dropdownToggle type="button" class="btn btn-default dropdown-toggle">
+              Ver salas ({{user.direito_acesso.length}})
+              <span class="caret"></span>
+            </button>
+            <ul *dropdownMenu class="dropdown-menu" role="menu">
+              <li>
+                <a class="dropdown-item"
+                  *ngFor="let sala of user.direito_acesso">
+                  {{ sala.nome_sala }}
+                </a>
+              </li>
+            </ul>
+          </div>
+        </td>
+        <td>
+          <button type="submit" class="btn btn-primary" (click)="showModal(idx)"
+            tooltip="Editar usuário">
+            <span class="glyphicon glyphicon-pencil"></span>
+          </button>
+          <button type="submit" class="btn btn-danger" (click)="apagarUsuario(idx)"
+            tooltip="Deletar usuário">
+            <span class="glyphicon glyphicon-trash"></span>
+          </button>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>

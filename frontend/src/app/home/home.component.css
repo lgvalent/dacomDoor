@@ -1,0 +1,46 @@
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #333;
+}
+
+li {
+    float: left;
+}
+
+li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+/* Change the link color to #111 (black) on hover */
+li a:hover {
+    background-color: #005;
+}
+
+.container{
+    width: 80%;
+    height: 500px;
+    margin-top: 10px;
+}
+
+#aba{
+    border: 0px solid #000;
+    width: 90px;
+    height: 100px;
+    margin-left: 68px;
+}
+
+.cad-user, .cad-sala{
+    width: 90px;
+}
+
+.sair{
+    margin-left: 970px;
+}
+
