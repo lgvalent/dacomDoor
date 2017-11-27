@@ -39,10 +39,10 @@ class RaspRfidResource(Resource):
             .filter(Usuario.alive == False)
             .all()
         )
-
+        
         for u in usuarios:
             for d in u.direito_acesso:
-                if (d.nome_sala == args["sala"]):
+                if (d.nome_sala.nome == args["sala"]):
                     results_removidos.append({"rfid": u.rfid})
         results["removidos"] = results_removidos.copy()
 

@@ -22,15 +22,17 @@ class RaspCheckEventoResource(Resource):
             .first()
         )
 
-        evento = (
-            Evento.query
-            .filter(Evento.id_sala == sala.id)
-            .order_by(desc(Evento.horario))
-            .first()
-        )
+        if not sala == None:
+            evento = (
+                Evento.query
+                .filter(Evento.id_sala == sala.id)
+                .order_by(desc(Evento.horario))
+                .first()
+            )
 
-        if not evento:
-            results["horario"] = "2001-01-01T00:00:00+00:00"
-        else:
-            results["horario"] = evento.horario
+            if evento == None:
+                results["horario"] = "2001-01-01T00:00:00+00:00"
+            else:
+                results["horario"] = evento.horario
+
         return jsonify(results)
