@@ -55,6 +55,10 @@ def AtualizarRfids():
                     dateutil.parser.parse(adicionar["last_update"])
                 )
                 novo_rfid.add(novo_rfid)
+            else:
+                if rfids_permitidos.tipo != adicionar["tipo"]:
+                    rfids_permitidos.tipo = adicionar["tipo"]
+                    rfids_permitidos.update()
 
         # remove
         for remover in r["removidos"]:
