@@ -1,13 +1,14 @@
 nome_sala_rasp = "E101"
 last_update_fake = "2001-01-01T00:00:00+00:00"
+API_URL = "http://localhost:5000"
 
 # SQLAlchemy
 SQLALCHEMY_ECHO = True
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 # MYSQL - TROCAR NOMES
-mysql_db_username = "kds"
-mysql_db_password = ""
+mysql_db_username = "root"
+mysql_db_password = "root"
 mysql_db_name = "rasp"
 mysql_db_hostname = "localhost"
 
