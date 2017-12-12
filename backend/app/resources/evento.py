@@ -83,6 +83,8 @@ class SearchEvento(Resource):
 			)
 
 			list_eventos = self.normalize_event(eventos)
+			if not len(list_eventos):
+				return None, 404
 			return schema.dump(list_eventos, many=True).data
 
 		if args["filter"] == "Tipo":
@@ -96,6 +98,8 @@ class SearchEvento(Resource):
 			)
 
 			list_eventos = self.normalize_event(eventos)
+			if not len(list_eventos):
+				return None, 404
 			return schema.dump(list_eventos, many=True).data
 
 		if args["filter"] == "Sala":
