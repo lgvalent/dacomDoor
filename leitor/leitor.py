@@ -4,7 +4,9 @@ import time
 import RPi.GPIO as GPIO
 import MFRC522
  
-from controle import autorizar
+from controlador import checkar_credenciais
+
+tipo_evento = "entrada"
 
 try:
     # Inicia o módulo RC522.
@@ -27,7 +29,7 @@ try:
                 print('UID do cartão: %s' % uid)
  
                 # Se o cartão está liberado exibe mensagem de boas vindas.
-                autorizar(uid)
+                checkar_credenciais(uid, tipo_evento)
  
                 print('\nAproxime seu cartão RFID')
  
