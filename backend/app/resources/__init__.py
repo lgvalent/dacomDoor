@@ -8,3 +8,4 @@ from app.resources.rasp_check_evento import RaspCheckEventoResource
 from app.resources.usuario import UsuarioResource, UsuarioListResource
 from app.resources.horario import HorarioResource, HorarioListResource
 from app.resources.sala import SalaResource, SalaListResource, SalaHorarioResource
+from app.resources.evento import SearchEvento
