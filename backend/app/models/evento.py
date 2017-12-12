@@ -25,3 +25,11 @@ class EventoSchema(Schema):
 	horario = fields.DateTime()
 	id_usuario = fields.Integer()
 	id_sala = fields.Integer()
+
+
+class SearchEventoSchema(Schema):
+	evento = EnumEvento()
+	data = fields.String()
+	hora = fields.String()
+	usuario = fields.String()
+	sala = fields.String()

@@ -22,7 +22,7 @@ class RaspCheckEventoResource(Resource):
             .first()
         )
 
-        if not sala == None:
+        if sala:
             evento = (
                 Evento.query
                 .filter(Evento.id_sala == sala.id)
@@ -30,9 +30,11 @@ class RaspCheckEventoResource(Resource):
                 .first()
             )
 
-            if evento == None:
+            if not evento:
                 results["horario"] = "2001-01-01T00:00:00+00:00"
             else:
                 results["horario"] = evento.horario
+
+        print('<- RESULTADO ->', results)
 
         return jsonify(results)

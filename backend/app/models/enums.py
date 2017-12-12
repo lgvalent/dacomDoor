@@ -9,7 +9,7 @@ class EnumDia(fields.Field):
 		if value == Dia.Segunda:
 			return "Segunda-feira"
 		elif value == Dia.Terca:
-			return "Terca-feira"
+			return "Terça-feira"
 		elif value == Dia.Quarta:
 			return "Quarta-feira"
 		elif value == Dia.Quinta:
