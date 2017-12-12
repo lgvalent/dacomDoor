@@ -40,7 +40,7 @@
         <th>Tipo</th>
         <th>Nome</th>
         <th>Email</th>
-        <th>RFID</th>
+        <!--th>RFID</th-->
         <th>Salas Permitidas</th>
         <th>Outros</th>
 
@@ -49,7 +49,7 @@
         <td>{{ user.tipo }}</td>
         <td>{{ user.nome }}</td>
         <td>{{ user.email }}</td>
-        <td>{{ user.rfid }}</td>
+        <!--td>{{ user.rfid }}</td-->
         <td>
           <div class="btn-group" dropdown [ngSwitch]="user.direito_acesso.length === 0">
             <button class="btn btn-default" *ngSwitchCase="true">Nenhuma</button>

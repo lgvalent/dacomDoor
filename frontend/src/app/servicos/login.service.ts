@@ -30,10 +30,10 @@ export class LoginService {
     );
   }
 
-  async login(username, password) {
+  async login(email, password) {
     await this.http
       .post(`${APP_SERVER}/auth`, {
-        username: username,
+        username: email,
         password: password
       })
       .toPromise()

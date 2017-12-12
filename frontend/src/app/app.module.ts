@@ -15,6 +15,7 @@ import { HomeModule } from './home/home.module';
 import { ListSalaModule } from './list-sala/list-sala.module';
 import { ListUserModule } from './list-user/list-user.module';
 import { ListAdminModule } from './list-admin/list-admin.module';
+import { RelatorioModule } from './relatorio/relatorio.module';
 
 import { PaginaErroComponent } from './pagina-erro/pagina-erro.component';
 
@@ -35,6 +36,7 @@ import { LoginDisabledService } from './servicos/login-disabled.service';
     LoginModule,
     ListUserModule,
     ListSalaModule,
+    RelatorioModule,
     ListAdminModule,
   ],
   providers: [

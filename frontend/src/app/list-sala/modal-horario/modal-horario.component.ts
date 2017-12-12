@@ -19,7 +19,15 @@ export class ModalHorarioComponent implements OnInit {
   horario: any;
 
   typeUsers = ['Aluno', 'Professor', 'Servidor'];
-  dias = ['Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado', 'Domingo'];
+  dias = [
+    {key: 'Segunda-feira', value: 'Segunda'},
+    {key: 'Terça-feira', value: 'Terca'},
+    {key: 'Quarta-feira', value: 'Quarta'},
+    {key: 'Quinta-feira', value: 'Quinta'},
+    {key: 'Sexta-feira', value: 'Sexta'},
+    {key: 'Sábado', value: 'Sabado'},
+    {key: 'Domingo', value: 'Domingo'}
+  ];
   body = {};
 
   myTime = new Date();
@@ -35,6 +43,9 @@ export class ModalHorarioComponent implements OnInit {
 
   getAttribute(attr) {
     this.horario = this.index !== undefined ? this.horarios[this.index] : {};
+    //if (attr === 'dia') {
+    //  return this.dias.map(dia => dia.key === this.horario[attr] ? dia.value : undefined);
+    //}
     return this.horario !== undefined ? this.horario[attr] : '';
   }
 
@@ -57,7 +68,7 @@ export class ModalHorarioComponent implements OnInit {
         hora_fim: formModalHora.value.horarioFim,
         dia: formModalHora.value.dia,
         id_sala: this.salaId,
-        tipo_user: formModalHora.value.tipo
+        tipo_user: 'Aluno'
       };
 
       if (this.mode === 'Editar') {

@@ -1,0 +1,74 @@
+<app-home></app-home>
+
+<div class="container" style="border: none">
+    
+  <form #f="ngForm" (ngSubmit)="onSubmit(f)" class="form-inline" style="margin-left: 20%">
+    <div class="input-group">
+      <span class="input-group-btn">
+        <select #select class="form-control" style="width: 95px" 
+          required name="filter" [ngModel]="'Data'">
+          <option *ngFor="let opt of options" [value]="opt">{{ opt }}</option>
+        </select>
+      </span>
+
+      <span class="input-group-btn" [ngSwitch]="select.value">
+        <div *ngSwitchCase="'Usuário'">
+          <input class="form-control" style="width: 350px" name="usuario"
+          ngModel required pattern="^[\w\s-]+$"          
+          placeholder="Nome de usuario, exemplo: João"/>
+        </div>
+        <div *ngSwitchDefault>
+          <div>
+            <input class="form-control" [textMask]="{mask: mask}"
+              placeholder="Data inicial: dd-mm-aaaa" name="data_inicio"
+              [(ngModel)]="dataInicio" type="text" required
+              />
+            <input class="form-control" [textMask]="{mask: mask}"
+              placeholder="Data final: dd-mm-aaaa" name="data_fim"
+              [(ngModel)]="dataFim" type="text" required
+              />
+          </div>
+        </div>
+        <div *ngSwitchCase="'Sala'">
+          <input type="text" class="form-control"
+            name="sala" placeholder="Exemplo: E101"
+            ngModel required/>
+        </div>
+        <div *ngSwitchCase="'Tipo'">
+          <select class="form-control" required name="tipo" ngModel>
+            <option *ngFor="let tipo of tipos" [value]="tipo">{{ tipo }}</option>
+          </select>
+        </div>
+        
+      </span>
+      <span class="input-group-btn">
+        <button class="btn btn-primary" [disabled]="!f.valid"  tooltip="Pesquisar">
+          <span class="glyphicon glyphicon-search"></span>
+        </button>
+      </span>
+    </div>
+  </form>
+</div>
+
+
+<div class="container">
+  <h3>Relatórios</h3>
+  <div class="control_table">
+    <table class="table table-hover">
+      <tr>
+        <th>Sala</th>
+        <th>Usuário</th>
+        <th>Evento</th>
+        <th>Data</th>
+        <th>Horário</th>
+      </tr>
+      <tr *ngFor="let e of eventos; let idx = index">
+        <td>{{ e.sala }}</td>
+        <td>{{ e.usuario }}</td>
+        <td>{{ e.evento }}</td>
+        <td>{{ formataData(e.data) }}</td>
+        <td>{{ formataHora(e.hora) }}</td>
+      </tr>
+    </table>
+  </div>
+</div>
