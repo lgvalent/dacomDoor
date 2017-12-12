@@ -86,10 +86,22 @@ export class RelatorioComponent implements OnInit {
     console.log(body);
     this.dbService.criarRecurso('pesquisa/evento', body)
     .then(resp => {
-      console.log(resp);
       this.eventos = resp;
+      console.log(resp);
     })
-    .catch(err => console.log(err));
+    .catch(err => this.handleError('Evento', err.status));
   }
 
+
+  private handleError(resource: string, error: number) {
+    if (error === 409) {
+      alert(`Este ${resource.toLowerCase()} já existe!`);
+    } else if (error === 400) {
+      alert('Ops, há algo errado nesta página ou configurações do servidor');
+    }else if (error === 404) {
+      alert(`Este ${resource.toLowerCase()} não existe!`);
+    } else if (error === 0) {
+      alert('Erro de conexão, tente novamente!');
+    }
+  }
 }
