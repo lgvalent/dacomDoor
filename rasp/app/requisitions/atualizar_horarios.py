@@ -8,6 +8,13 @@ from config import nome_sala_rasp, last_update_fake, API_URL
 schema = HorariosPermitidosSchema()
 
 class AtualizarHorario:
+    '''
+    - rasp busca a ultima data de um horario cadastrado ou atualizado
+    - rasp envia pro servidor o nome da sala desse rasp e a data do passo anterior (data coringa se nao houver registros)
+    - servidor confere se existem novos horarios cadastrados ou modificados para essa sala depois da data em questao
+    - servidor envia de volta uma lista de novos horarios, horarios modificados e horarios removidos
+    - rasp insere novos horarios, modifica horarios existentes e remove horarios, se necessario
+    '''
     
     def requisitar():
         # query

@@ -24,11 +24,11 @@ if args.nome_sala != None:
 
 def tasks():
     AtualizarRfid.requisitar()
-    time.sleep(3)
+    time.sleep(10)
     AtualizarHorario.requisitar()
-    time.sleep(3)
+    time.sleep(10)
     AtualizarEventos.enviar()
-    time.sleep(3)
+    time.sleep(10)
     tasks()
 
 if __name__ == '__main__':

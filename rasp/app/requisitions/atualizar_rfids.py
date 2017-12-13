@@ -6,6 +6,13 @@ from app.models.rfids_permitidos import RfidsPermitidos, RfidsPermitidosSchema
 from config import nome_sala_rasp, last_update_fake, API_URL
 
 class AtualizarRfid:
+    '''
+    - rasp busca a ultima data de um rfid cadastrado ou atualizado
+    - rasp envia pro servidor o nome da sala desse rasp e a data do passo anterior (data coringa se nao houver registros)
+    - servidor confere se existem novos rfids cadastrados ou modificados para essa sala depois da data em questao
+    - servidor envia de volta uma lista de novos rfids, rfids modificados e rfids removidos
+    - rasp insere novos rfids, modifica rfids existentes e remove rfids, se necessario
+    '''
 
     def requisitar():
         last_update = (
