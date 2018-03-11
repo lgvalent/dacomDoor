@@ -1,65 +1,44 @@
 import enum
 from marshmallow import fields
 
-
-class EnumDia(fields.Field):
+class DayOfWeekField(fields.Field):
 	def _serialize(self, value, attr, obj):
 		if value is None:
 			return ""
-		if value == Dia.Segunda:
-			return "Segunda-feira"
-		elif value == Dia.Terca:
-			return "Terça-feira"
-		elif value == Dia.Quarta:
-			return "Quarta-feira"
-		elif value == Dia.Quinta:
-			return "Quinta-feira"
-		elif value == Dia.Sexta:
-			return "Sexta-feira"
-		elif value == Dia.Sabado:
-			return "Sábado"
-		elif value == Dia.Domingo:
-			return "Domingo"
+		else:
+			return DaysOfWeekEnum[value].name
+
+# datetime.weekday() return 0..6 from monday to synday
+class DaysOfWeekEnum(enum.Enum):
+	MONDAY = "Segunda-feira"
+	THUESDAY = "Terça-feira"
+	WEDNESDAY = "Quarta-feira"
+	THURSDAY = "Quinta-feira"
+	FRIDAY = "Sexta-feira"
+	SATURDAY = "Sábado"
+	SUNDAY = "Domingo"
 
 
-class Dia(enum.Enum):
-	Segunda = "Segunda-feira"
-	Terca = "Terça-feira"
-	Quarta = "Quarta-feira"
-	Quinta = "Quinta-feira"
-	Sexta = "Sexta-feira"
-	Sabado = "Sábado"
-	Domingo = "Domingo"
-
-
-class EnumTipo(fields.Field):
+class UserTypeField(fields.Field):
 	def _serialize(self, value, attr, obj):
 		if value is None:
 			return ""
-		if value == TipoUsuario.Aluno:
-			return "Aluno"
-		elif value == TipoUsuario.Professor:
-			return "Professor"
-		elif value == TipoUsuario.Servidor:
-			return "Servidor"
+		else:
+			return UserTypesEnum[value].name
 
+class UserTypesEnum(enum.Enum):
+	STUDENT = "Student"
+	PROFESSOR = "Professor"
+	EMPLOYEE = "Employee"
 
-class TipoUsuario(enum.Enum):
-	Aluno = "Aluno"
-	Professor = "Professor"
-	Servidor = "Servidor"
-
-
-class EnumEvento(fields.Field):
+class EventTypeField(fields.Field):
 	def _serialize(self, value, attr, obj):
 		if value is None:
 			return ""
-		if value == Evento.entrada:
-			return "Entrada"
-		elif value == Evento.saida:
-			return "Saída"
+		else:
+			return EventTypesEnum[value].name
 
 
-class Evento(enum.Enum):
-	entrada = 0
-	saida = 1
+class EventTypesEnum(enum.Enum):
+	IN = "get in"
+	OUT = "get ou"
