@@ -1,18 +1,18 @@
-nome_sala_rasp = "E101"
-last_update_fake = "2001-01-01T00:00:00+00:00"
-API_URL = "http://localhost:5000"
+URL_SERVER = "http://192.168.237.21:5000"
+ROOM_NAME = "E003"
+ROOM_LAST_UPDATE_FAKE = "2001-01-01T00:00:00+00:00"
 
 # SQLAlchemy
-SQLALCHEMY_ECHO = True
+SQLALCHEMY_ECHO = False
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 # MYSQL - TROCAR NOMES
-mysql_db_username = "root"
-mysql_db_password = "root"
-mysql_db_name = "rasp"
-mysql_db_hostname = "localhost"
+DB_HOST = "localhost"
+DB_SCHEMA = "dacomDoor"
+DB_USERNAME = "user"
+DB_PASSWORD = "user"
 
 # MySQL + SQLAlchemy
 SQLALCHEMY_DATABASE_URI = ("mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_ADDR}/{DB_NAME}"
-							.format(DB_USER=mysql_db_username, DB_PASS=mysql_db_password,
-									DB_ADDR=mysql_db_hostname, DB_NAME=mysql_db_name))
+							.format(DB_USER=DB_USERNAME, DB_PASS=DB_PASSWORD,
+									DB_ADDR=DB_HOST, DB_NAME=DB_SCHEMA))
