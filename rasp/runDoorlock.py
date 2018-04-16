@@ -4,11 +4,12 @@ import time
 import RPi.GPIO as GPIO
 from doorlock import RDM6300
  
-from doorlock.controller import beep, beeps, learnUid, checkUid, checkSchedule
+from doorlock.controller import beep, beeps, learnUid, checkAccess, checkSchedule
 from app.models.enums import EventTypesEnum
 
 ACTIVITY_LED_PIN = 24
 PUSH_BUTTON_PIN = 17
+LOCK_RELAY_PIN = 23
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(PUSH_BUTTON_PIN,GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -22,7 +23,7 @@ def blinkActivityLed():
     time.sleep(0.01)
 
 try:
-    # Inicia o módulo
+    # Start RFid Sensor Module
     rfidReader = RDM6300.RDM6300(ACTIVITY_LED_PIN)
  
     print('Bring RFID card closer...')
@@ -32,7 +33,7 @@ try:
             beep(); blinkActivityLed(); blinkActivityLed(); blinkActivityLed()
 
         blinkActivityLed()
-        # Verifica se existe uma tag próxima do módulo.
+        # Read keyring UID
         uid = rfidReader.readUid()
 
         if uid:
@@ -46,8 +47,7 @@ try:
                     print("Repeated.")
                     beeps()
             else:
-                # Se o cartão está liberado exibe mensagem de boas vindas.
-                if checkUid(uid, EventTypesEnum.IN):
+                if checkAccess(uid, EventTypesEnum.IN, LOCK_RELAY_PIN):
                     beep()
                 else:
                     beeps()
@@ -56,8 +56,7 @@ try:
             time.sleep(.25)
 
 except KeyboardInterrupt:
-    # Se o usuário precionar Ctrl + C
-    # encerra o programa.
+    # Check if user press CTRL+C
     GPIO.cleanup()
     print('\nEnd of program.')
 

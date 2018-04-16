@@ -9,15 +9,14 @@ from app.models.schedules import Schedule
 from app.models.events import Event
 from app.models.enums import *
 
-LOCK_RELAY_PIN = 23
 LOCK_RELAY_DELAY = 5 #seconds
 
-def openDoor():
+def openDoor(pin):
     print("Opening the lock")
-    GPIO.setup(LOCK_RELAY_PIN, GPIO.OUT)
-    GPIO.output(LOCK_RELAY_PIN, 1)
+    GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, 1)
     time.sleep(LOCK_RELAY_DELAY)
-    GPIO.output(LOCK_RELAY_PIN, 0)
+    GPIO.output(pin, 0)
 
 def checkSchedule(uid):
     keyring = Keyring.query.filter(Keyring.uid == uid).first()
@@ -62,11 +61,11 @@ def saveEvent(uid, eventType, time):
             )
     event.add(event)
 
-def checkUid(uid, eventType):
+def checkAccess(uid, eventType, pin):
     allowed = checkSchedule(uid)
     if allowed:
         print('UID: %s ALLOWED \a' % uid)
-        _thread.start_new_thread(openDoor, ())
+        _thread.start_new_thread(openDoor, (pin,))
         saveEvent(uid, eventType, datetime.now())
     else:
         print('UID: %s not allowed \a\a' % uid)

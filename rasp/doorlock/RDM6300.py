@@ -10,7 +10,7 @@ class RDM6300(AbstractSensor):
 	def __init__(self, activityPin):
 		#self.serial = serial.Serial('/dev/ttyAMA0',9600)
 		self.serial = serial.Serial('/dev/serial0',9600)
-		self.serial.timeout = 1
+		self.serial.timeout = 0.5
 		self.serial.close()
 		self.serial.open()
 
