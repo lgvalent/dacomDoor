@@ -1,4 +1,5 @@
 import pygame
+import os
 import time
 import RPi.GPIO as GPIO
 import _thread
@@ -75,12 +76,12 @@ def checkAccess(uid, eventType, pin):
 def beep():
     pygame.init()
 
-    pygame.mixer.music.load("beep.wav")
+    pygame.mixer.music.load(os.path.dirname(__file__) + "/beep.wav")
     pygame.mixer.music.play()
 
 def beeps():
     pygame.init()
 
-    pygame.mixer.music.load("beeps.wav")
+    pygame.mixer.music.load(os.path.dirname(__file__) + "/beeps.wav")
     pygame.mixer.music.play()
 

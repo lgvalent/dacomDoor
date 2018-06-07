@@ -1,5 +1,4 @@
 # -*- coding: utf8 -*-
- 
 import time
 import RPi.GPIO as GPIO
 from doorlock import RDM6300
@@ -30,7 +29,7 @@ try:
     while True:
         learnMode = not GPIO.input(PUSH_BUTTON_PIN)
         if learnMode:
-            beep(); blinkActivityLed(); blinkActivityLed(); blinkActivityLed()
+            beeps(); blinkActivityLed(); blinkActivityLed(); blinkActivityLed()
 
         blinkActivityLed()
         # Read keyring UID
