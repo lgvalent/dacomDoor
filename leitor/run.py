@@ -4,38 +4,38 @@ import time
 import RPi.GPIO as GPIO
 import MFRC522
  
-from controlador import checkar_credenciais
-
-tipo_evento = "entrada"
+from controller import checkUid
 
 try:
     # Inicia o módulo RC522.
-    LeitorRFID = MFRC522.MFRC522()
+    rfidReader = MFRC522.MFRC522()
  
-    print('Aproxime seu cartão RFID')
+    print('Bring RFID card closer...')
  
     while True:
         # Verifica se existe uma tag próxima do módulo.
-        status, tag_type = LeitorRFID.MFRC522_Request(LeitorRFID.PICC_REQIDL)
+        status, tag_type = rfidReader.MFRC522_Request(rfidReader.PICC_REQIDL)
  
-        if status == LeitorRFID.MI_OK:
-            print('Cartão detectado!')
+        if status == rfidReader.MI_OK:
+            print ('Card detected!')
  
             # Efetua leitura do UID do cartão.
-            status, uid = LeitorRFID.MFRC522_Anticoll()
+            status, uid = rfidReader.MFRC522_Anticoll()
  
-            if status == LeitorRFID.MI_OK:
+            if status == rfidReader.MI_OK:
                 uid = ':'.join(['%X' % x for x in uid])
-                print('UID do cartão: %s' % uid)
+                print('UID: %s' % uid)
  
                 # Se o cartão está liberado exibe mensagem de boas vindas.
-                checkar_credenciais(uid, tipo_evento)
- 
-                print('\nAproxime seu cartão RFID')
+                checkUid(uid, "IN")
+            else:
+                print("1111111")
+        else:
+            print("2222222")
  
         time.sleep(.25)
 except KeyboardInterrupt:
     # Se o usuário precionar Ctrl + C
     # encerra o programa.
     GPIO.cleanup()
-    print('\nPrograma encerrado.')
+    print('\nEnd of program.')

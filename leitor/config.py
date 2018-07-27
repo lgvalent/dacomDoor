@@ -1,6 +1,14 @@
-# credenciais do banco de dados
+# SQLAlchemy
+SQLALCHEMY_ECHO = True
+SQLALCHEMY_TRACK_MODIFICATIONS = True
 
-bd_id = "root1"
-bd_pw = "root"
-bd_end = "localhost"
-bd_name = "rasp"
+# MYSQL - TROCAR NOMES
+DB_HOST = "localhost"
+DB_SCHEMA = "dacomDoor"
+DB_USERNAME = "user"
+DB_PASSWORD = "user"
+
+# MySQL + SQLAlchemy
+SQLALCHEMY_DATABASE_URI = ("mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_ADDR}/{DB_NAME}"
+							.format(DB_USER=DB_USERNAME, DB_PASS=DB_PASSWORD,
+									DB_ADDR=DB_HOST, DB_NAME=DB_SCHEMA))
