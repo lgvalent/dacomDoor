@@ -16,3 +16,7 @@ DB_PASSWORD = "user"
 SQLALCHEMY_DATABASE_URI = ("mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_ADDR}/{DB_NAME}"
 							.format(DB_USER=DB_USERNAME, DB_PASS=DB_PASSWORD,
 									DB_ADDR=DB_HOST, DB_NAME=DB_SCHEMA))
+# SQL Commands to create SCHEMA and USER
+# CREATE DATABASE dacomDoor;
+# CREATE USER 'user'@'localhost' IDENTIFIED BY 'user';
+# GRANT ALL PRIVILEGES ON dacomDoor.* TO 'user'@'localhost';
