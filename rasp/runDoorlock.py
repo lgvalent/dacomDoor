@@ -24,6 +24,8 @@ def blinkActivityLed():
 try:
     # Start RFid Sensor Module
     rfidReader = RDM6300.RDM6300(ACTIVITY_LED_PIN)
+    lastUid = None
+    lastUidTime = None
  
     print('Bring RFID card closer...')
     while True:
@@ -35,8 +37,12 @@ try:
         # Read keyring UID
         uid = rfidReader.readUid()
 
-        if uid:
+        if uid and (lastUid != uid or time.time()-lastUidTime>5): #Check lastUid to block repeated reading
             print('UID: %s' % uid)
+            # Mark last uid
+            lastUid = uid
+            lastUidTime = time.time()
+
             if learnMode:
                 print("Learning %s..." % uid)
                 if learnUid(uid):
