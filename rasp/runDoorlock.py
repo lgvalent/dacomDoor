@@ -26,6 +26,9 @@ try:
     rfidReader = RDM6300.RDM6300(ACTIVITY_LED_PIN)
     lastUid = None
     lastUidTime = None
+
+    #Touch SchemaDB to keep connection opened on boot
+    checkAccess('000000000000', EventTypesEnum.IN, LOCK_RELAY_PIN)
  
     print('Bring RFID card closer...')
     while True:
