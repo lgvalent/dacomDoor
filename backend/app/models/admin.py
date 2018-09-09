@@ -5,15 +5,15 @@ from app.models.base import CRUD, db
 
 
 class Admin(db.Model, CRUD):
-	__tablename__ = "admin"
+	__tablename__ = "admins"
 
 	id = db.Column(db.Integer, primary_key=True)
-	nome = db.Column(db.String(80), nullable=False)
+	name = db.Column(db.String(80), nullable=False)
 	email = db.Column(db.String(100), nullable=False, unique=True)
 	password = db.Column(db.String(128), nullable=False)
 
-	def __init__(self, nome, email, password):
-		self.nome = nome
+	def __init__(self, name, email, password):
+		self.name = name
 		self.email = email
 		self.password = pwd_context.encrypt(password)
 
@@ -26,8 +26,9 @@ class Admin(db.Model, CRUD):
 
 class AdminSchema(Schema):
 	id = fields.Integer()
-	nome = fields.String()
+	name = fields.String()
 	email = fields.Email()
+	password = fields.String()
 
 	class Meta:
 		type_ = "admin"

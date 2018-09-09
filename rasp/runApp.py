@@ -6,8 +6,8 @@ from app.controllers.keyringsUpdate import KeyringsUpdate
 from app.controllers.schedulesUpdate import SchedulesUpdate
 import config
 
-parser = argparse.ArgumentParser(description='Use run.py alone or with paramater [-r "rom_name"] to override config.py')
-parser.add_argument('-s', dest='roomName', help='USAGE: "python run.py -r E003"')
+parser = argparse.ArgumentParser(description='Use runApp.py alone or with paramater [-r "rom_name"] to override config.py')
+parser.add_argument('-s', dest='roomName', help='USAGE: "python runApp.py -r E003"')
 args = parser.parse_args()
 
 if args.roomName != None:

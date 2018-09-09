@@ -24,19 +24,13 @@ class KeyringsUpdate:
 
         # if DB is empty
         if not keyring:
-            data = {
-                "lastUpdate": config.ROOM_LAST_UPDATE_FAKE,
-                "room": config.ROOM_NAME
-            }
+            lastUpdate = config.ROOM_LAST_UPDATE_FAKE
         else:
-            data = {
-                "lastUpdate": str(keyring[0]),
-                "room": config.ROOM_NAME
-            }
+            lastUpdate = keyring.lastUpdate
 
         # post
         try:
-            response = requests.post(config.URL_SERVER + "/query/keyrings", json=data)
+            response = requests.get(config.URL_SERVER + "/doorlock/" + config.ROOM_NAME + "/keyrings", {"lastUpdate" : lastUpdate})
             results = response.json()
 
             # persist

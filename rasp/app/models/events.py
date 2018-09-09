@@ -11,14 +11,14 @@ class Event(db.Model, CRUD):
 	id = db.Column(db.Integer, primary_key=True)
 	uid = db.Column(db.String(16), nullable=False)
 	eventType = db.Column(db.Enum(EventTypesEnum), nullable=False)
-	time = db.Column(db.DateTime, nullable=False)
+	dateTime = db.Column(db.DateTime, nullable=False)
 
-	def __init__(self, uid, eventType, time):
+	def __init__(self, uid, eventType, dateTime):
 		self.uid = uid
 		self.eventType = eventType
-		self.time = time
+		self.dateTime = dateTime
 
 class EventSchema(Schema):
 	uid = fields.String()
 	eventType = EventTypeField()
-	time = fields.DateTime()
+	dateTime = fields.DateTime()

@@ -15,35 +15,18 @@ class EventsUpdate:
     '''
     
     def update(self):
-        data = {"room": config.ROOM_NAME}
-
     try:
-        response = requests.post(config.URL_SERVER+ "/rasp/checkLastEvent", json=data)
-        results = response.json()
-
-        lastUpdate = dateutil.parser.parse(results["lastUpdate"])
         results = (
             Event.query
-            .filter(Event.time > lastUpdate)
             .all()
         )
 
-        events = {
-                "room": config.ROOM_NAME,
-                "events": []
-        }
+        response = requests.post(config.URL_SERVER + "/doorlock/" + config.ROOM_NAME + "/events", json=EventSchema().dump(events, many=True).data)
 
-        for result in results:
-            event = {
-                "uid": result.uid,
-                "event": result.event.name,
-                "time": str(result.time),
-            }
-            events["events"].append(event)
-        
-        response = requests.post(config.URL_SERVER + "/rasp/events", json=events)
         if(not response.ok):
             print ("Error updating events on server")
+        else:
+            Event.query.delete()
 
     except:
         pass

@@ -5,7 +5,7 @@ import { AuthHttp, AuthConfig, JwtHelper } from 'angular2-jwt';
 import 'rxjs/add/operator/toPromise';
 import 'rxjs/add/operator/map';
 
-const APP_SERVER = 'http://localhost:5000';
+const APP_SERVER = 'http://192.168.237.21:5000';
 
 @Injectable()
 export class LoginService {

@@ -3,7 +3,7 @@ import dateutil.parser
 
 from app.models.horarios_permitidos import HorariosPermitidos, HorariosPermitidosSchema
 
-from config import nome_sala_rasp, last_update_fake, API_URL
+from config import nome_sala_rasp, lastUpdateFake, API_URL
 
 schema = HorariosPermitidosSchema()
 
@@ -20,7 +20,7 @@ class AtualizarHorario:
         # query
         horarios_permitidos_query = (
             HorariosPermitidos.query
-            .order_by(HorariosPermitidos.last_update.desc())
+            .order_by(HorariosPermitidos.lastUpdate.desc())
             .first()
         )
         horarios_permitidos = schema.dump(horarios_permitidos_query).data
@@ -28,12 +28,12 @@ class AtualizarHorario:
         # se bd vazio
         if not horarios_permitidos:
             dados = {
-                "last_update": last_update_fake,
+                "lastUpdate": lastUpdateFake,
                 "sala": nome_sala_rasp
             }
         else:
             dados = {
-                "last_update": horarios_permitidos["last_update"],
+                "lastUpdate": horarios_permitidos["lastUpdate"],
                 "sala": nome_sala_rasp
             }
 
@@ -52,7 +52,7 @@ class AtualizarHorario:
                         adicionar["hora_inicio"],
                         adicionar["hora_fim"],
                         adicionar["tipo_usuario"],
-                        dateutil.parser.parse(adicionar["last_update"])
+                        dateutil.parser.parse(adicionar["lastUpdate"])
                     )
                     novo_horario.add(novo_horario)
                 else:
@@ -60,7 +60,7 @@ class AtualizarHorario:
                     horario.hora_inicio = adicionar["hora_inicio"]
                     horario.hora_fim = adicionar["hora_fim"]
                     horario.tipo_usuario = adicionar["tipo_usuario"]
-                    horario.last_update = dateutil.parser.parse(adicionar["last_update"])
+                    horario.lastUpdate = dateutil.parser.parse(adicionar["lastUpdate"])
                     horario.update()
 
             # remove

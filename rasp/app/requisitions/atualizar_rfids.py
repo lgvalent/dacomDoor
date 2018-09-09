@@ -3,7 +3,7 @@ import dateutil.parser
 
 from app.models.rfids_permitidos import RfidsPermitidos, RfidsPermitidosSchema
 
-from config import nome_sala_rasp, last_update_fake, API_URL
+from config import nome_sala_rasp, lastUpdateFake, API_URL
 
 class AtualizarRfid:
     '''
@@ -15,22 +15,22 @@ class AtualizarRfid:
     '''
 
     def requisitar():
-        last_update = (
+        lastUpdate = (
             RfidsPermitidos.query
-            .with_entities(RfidsPermitidos.last_update)
-            .order_by(RfidsPermitidos.last_update.desc())
+            .with_entities(RfidsPermitidos.lastUpdate)
+            .order_by(RfidsPermitidos.lastUpdate.desc())
             .first()
         )
 
         # se bd vazio
-        if not last_update:
+        if not lastUpdate:
             dados = {
-                "last_update": last_update_fake,
+                "lastUpdate": lastUpdateFake,
                 "sala": nome_sala_rasp
             }
         else:
             dados = {
-                "last_update": str(last_update[0]),
+                "lastUpdate": str(lastUpdate[0]),
                 "sala": nome_sala_rasp
             }
 
@@ -50,7 +50,7 @@ class AtualizarRfid:
                     novo_rfid = RfidsPermitidos(
                         adicionar["rfid"],
                         adicionar["tipo"],
-                        dateutil.parser.parse(adicionar["last_update"])
+                        dateutil.parser.parse(adicionar["lastUpdate"])
                     )
                     novo_rfid.add(novo_rfid)
                 else:

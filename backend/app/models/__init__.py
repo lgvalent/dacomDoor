@@ -1,6 +1,5 @@
-from app.models.evento import Evento
-from app.models.usuario import Usuario
-from app.models.horario import Horario
-from app.models.sala import Sala
-from app.models.acesso import DireitoAcesso
+from app.models.event import Event
+from app.models.user import User
+from app.models.schedule import Schedule
+from app.models.room import Room, RoomUser
 from app.models.admin import Admin

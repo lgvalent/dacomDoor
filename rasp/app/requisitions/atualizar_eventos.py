@@ -3,7 +3,7 @@ import dateutil.parser
 
 from app.models.eventos import Eventos, EventosSchema
 
-from config import nome_sala_rasp, last_update_fake, API_URL
+from config import nome_sala_rasp, lastUpdateFake, API_URL
 
 class AtualizarEventos:
     '''
