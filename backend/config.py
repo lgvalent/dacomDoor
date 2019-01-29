@@ -1,7 +1,7 @@
 # Flask
 DEBUG = True
 PORT = 5000
-HOST = "localhost"
+HOST = "192.168.237.13"
 SECRET_KEY = "a1841b5ef57d8de68b17203721a8b094f05e1e319bf23aeb"
 
 # JWT (https://pythonhosted.org/Flask-JWT/)

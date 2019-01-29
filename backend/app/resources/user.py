@@ -38,7 +38,7 @@ class UserResource(Resource):
 		user = User.query.get(id)
 
 		if not user.active:
-			return response("User {} not found".format(id))
+			return response("User {} not found".format(id), 404)
 
 		user = user.__dict__.copy()
 		return schema.dump(user).data, 200
@@ -77,7 +77,7 @@ class UserResource(Resource):
 
 		user.update()
 
-		return schema.dump(user).data
+		return schema.dump(user).data, 200
 
 	#@jwt_required()
 	def delete(self, id):

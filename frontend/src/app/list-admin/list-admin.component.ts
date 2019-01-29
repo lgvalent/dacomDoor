@@ -51,15 +51,15 @@ export class ListAdminComponent implements OnInit {
     this.bsModalRef.content.mode = mode;
   }
 
-  apagarAdmin(index) {
+  deleteAdmin(index) {
     const { id } = this.admins[index];
-    if (confirm('Você deseja apagar este administrador?')) {
+    if (confirm('Confirm delete admin?')) {
       this.dbService.deletarRecurso('admins', id)
         .then(() => {
           const token = localStorage.getItem('token');
           const { identity } = this.jwtHelper.decodeToken(token);
           this.admins.splice(index, 1);
-          this.showAlert('success', 'Administrador removido com sucesso!');
+          this.showAlert('success', 'Admin deleted!');
           if (identity === id) {
             localStorage.setItem('flag', 'MnsyBscAShMB251Sz%3');
             localStorage.removeItem('token');

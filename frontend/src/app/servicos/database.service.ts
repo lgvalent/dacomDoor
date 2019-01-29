@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { AuthConfig, AuthHttp, JwtHelper } from 'angular2-jwt';
 import { Http } from '@angular/http';
 
-const APP_SERVER = 'http://192.168.237.21:5000';
+const APP_SERVER = 'http://192.168.237.13:5000';
 
 @Injectable()
 export class DatabaseService {

@@ -7,7 +7,7 @@ from marshmallow import Schema, fields, post_load
 
 class EventTypesEnum(enum.Enum):
 	IN = "get in"
-	OUT = "get ou"
+	OUT = "get out"
 
 class EventTypeField(fields.Field):
 	def _serialize(self, value, attr, obj):

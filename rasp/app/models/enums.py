@@ -41,4 +41,4 @@ class EventTypeField(fields.Field):
 
 class EventTypesEnum(enum.Enum):
 	IN = "get in"
-	OUT = "get ou"
+	OUT = "get out"

@@ -36,7 +36,7 @@ class DoorlockKeyringsResource(Resource):
 					"lastUpdate" : roomUser.lastUpdate if roomUser.lastUpdate > roomUser.user.lastUpdate else roomUser.user.lastUpdate
 				})
 			else:
-				removed.append({"uid": roomUser.user.uid})
+				removed.append({"userId": roomUser.userId})
 		results["updated"] = updated
 		results["removed"] = removed
 		return jsonify(results)
@@ -50,7 +50,7 @@ class DoorlockKeyringsResource(Resource):
               {"uid":"111112", "eventType":"IN", "dateTime": "2007-07-07 13:13:13"}]
 '''
 class DoorlockEventsResource(Resource):
-	def put(self, roomName):
+	def post(self, roomName):
 		room = Room.query.filter(Room.name == roomName).first()
 
 		if not room:
