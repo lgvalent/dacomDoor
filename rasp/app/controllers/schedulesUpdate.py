@@ -1,6 +1,8 @@
 import requests
 import dateutil.parser
 
+from app import db
+
 from app.models.schedules import Schedule, ScheduleSchema
 
 import config
@@ -15,6 +17,7 @@ class SchedulesUpdate:
     '''
     
     def update(self):
+        db.session.commit() #Lucio 20180912: This session was not synchronyzing with DB when other process inserts events
         # query
         schedule = (
             Schedule.query
@@ -69,5 +72,6 @@ class SchedulesUpdate:
                 )
                 if schedule:
                     schedule.delete(schedule)
-        except:
+        except requests.exceptions.RequestException as e:
+            print (e)
             pass

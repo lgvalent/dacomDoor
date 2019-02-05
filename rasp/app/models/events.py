@@ -1,9 +1,19 @@
+import enum
 from datetime import datetime
 from marshmallow import Schema, fields
 
 from app.models.base import CRUD, db
-from app.models.enums import EventTypesEnum, EventTypeField
 
+class EventTypesEnum(enum.Enum):
+	IN = "get in"
+	OUT = "get out"
+
+class EventTypeField(fields.Field):
+	def _serialize(self, value, attr, obj):
+		if value is None:
+			return ""
+		else:
+			return value.name
 
 class Event(db.Model, CRUD):
 	__tablename__ = "events"

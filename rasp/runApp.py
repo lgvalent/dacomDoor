@@ -1,29 +1,38 @@
 import time
 import argparse
+from threading import Timer
 
 from app.controllers.eventsUpdate import EventsUpdate
 from app.controllers.keyringsUpdate import KeyringsUpdate
 from app.controllers.schedulesUpdate import SchedulesUpdate
+
 import config
 
-parser = argparse.ArgumentParser(description='Use runApp.py alone or with paramater [-r "rom_name"] to override config.py')
-parser.add_argument('-s', dest='roomName', help='USAGE: "python runApp.py -r E003"')
+parser = argparse.ArgumentParser(description='Use runApp.py alone or with paramater to override config.py')
+parser.add_argument('-r', dest='roomName', help='Specify room code (may be room short name) like "-r E003"')
+parser.add_argument('-u', dest='urlServer', help='Specify server URL with name and port like "-u http://localhost:5000"')
 args = parser.parse_args()
 
-if args.roomName != None:
-    try:
-        config.ROOM_NAME = args.roomName;
-    except:
-        pass
+try:
+    config.ROOM_NAME = args.roomName if args.roomName != None else config.ROOM_NAME;
+    config.URL_SERVER = args.urlServer if args.roomName != None else config.URL_SERVER;
+except:
+    pass
+
+
+print ("Synchronizing local KEYRINGS, EVENTS and SCHEDULE on {} \r\nwith remote {}.".format(config.ROOM_NAME,config.URL_SERVER))
+
 
 def tasks():
+    #print ("Updating...")
     KeyringsUpdate().update()
-    time.sleep(10)
-    SchedulesUpdate().update()
-    time.sleep(10)
+    time.sleep(1)
+    #SchedulesUpdate().update()
+    #time.sleep(1)
     EventsUpdate().update()
-    time.sleep(10)
-    tasks()
+    time.sleep(1)
+    Timer(2, tasks).start() #make loop forever
 
 if __name__ == '__main__':
     tasks()
+

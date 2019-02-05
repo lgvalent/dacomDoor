@@ -1,9 +1,26 @@
+import enum
 from datetime import datetime
 from marshmallow import Schema, fields
 
 from app.models.base import db, CRUD
-from app.models.enums import DaysOfWeekEnum, DayOfWeekField, UserTypesEnum, UserTypeField
+from app.models.keyrings import UserTypesEnum, UserTypeField
 
+# datetime.weekday() return 0..6 from monday to synday
+class DaysOfWeekEnum(enum.Enum):
+	MONDAY = "Segunda-feira"
+	THUESDAY = "Terça-feira"
+	WEDNESDAY = "Quarta-feira"
+	THURSDAY = "Quinta-feira"
+	FRIDAY = "Sexta-feira"
+	SATURDAY = "Sábado"
+	SUNDAY = "Domingo"
+
+class DayOfWeekField(fields.Field):
+	def _serialize(self, value, attr, obj):
+		if value is None:
+			return ""
+		else:
+			return value.name
 
 class Schedule(db.Model, CRUD):
 	__tablename__ = "schedules"

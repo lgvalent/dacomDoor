@@ -1,5 +1,6 @@
 import requests
 import dateutil.parser
+from app import db
 
 from app.models.keyrings import Keyring, KeyringSchema
 
@@ -15,6 +16,7 @@ class KeyringsUpdate:
     '''
 
     def update(self):
+        db.session.commit() #Lucio 20180912: This session was not synchronyzing with DB when other process inserts events
         keyring = (
             Keyring.query
             .with_entities(Keyring.lastUpdate)
@@ -31,6 +33,12 @@ class KeyringsUpdate:
         # post
         try:
             response = requests.get(config.URL_SERVER + "/doorlock/" + config.ROOM_NAME + "/keyrings", {"lastUpdate" : lastUpdate})
+            if(response.status_code == 204): #NO CONTENT
+                return
+
+            if(response.status_code != 200):
+                raise requests.exceptions.RequestException("Response: Code[{}]\n{}".format(response.status_code, response.text))
+
             results = response.json()
 
             # persist
@@ -41,6 +49,7 @@ class KeyringsUpdate:
                     .first()
                 )
                 if not keyring:
+                    print ("Adding new local UID {}.".format(result["uid"]))
                     keyring = Keyring(
                         result["uid"],
                         result["userId"],
@@ -49,6 +58,7 @@ class KeyringsUpdate:
                     )
                     keyring.add(keyring)
                 else:
+                    print ("Updating local UID {}.".format(result["uid"]))
                     keyring.uid = result["uid"]
                     keyring.userType = result["userType"]
                     keyring.lastUpdate = dateutil.parser.parse(result["lastUpdate"])
@@ -62,7 +72,9 @@ class KeyringsUpdate:
                     .first()
                 )
                 if keyring:
+                    print ("Removing local UID {}.".format(result["userId"]))
                     keyring.delete(keyring)
 
-        except:
+        except requests.exceptions.RequestException as e:
+            print (e)
             pass

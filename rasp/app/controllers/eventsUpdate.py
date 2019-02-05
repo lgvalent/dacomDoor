@@ -1,6 +1,8 @@
 import requests
 import dateutil.parser
 
+from app import db
+
 from app.models.events import Event, EventSchema
 
 import config
@@ -15,18 +17,23 @@ class EventsUpdate:
     '''
     
     def update(self):
-    try:
-        results = (
-            Event.query
-            .all()
-        )
+        try:
+            db.session.commit() #Lucio 20180912: This session was not synchronyzing with DB when other process inserts events
+            events = (Event.query.all())
 
-        response = requests.post(config.URL_SERVER + "/doorlock/" + config.ROOM_NAME + "/events", json=EventSchema().dump(events, many=True).data)
+            if len(events) > 0:
+                print ("Synchronyzing {} event(s).".format(len(events)))
+                response = requests.post(config.URL_SERVER + "/doorlock/" + config.ROOM_NAME + "/events", json=EventSchema().dump(events, many=True).data)
+                if(response.status_code != 200):
+                    raise requests.exceptions.RequestException("Response: Code[{}]\n{}".format(response.status_code, response.text))
 
-        if(not response.ok):
-            print ("Error updating events on server")
-        else:
-            Event.query.delete()
+                if(not response.ok):
+                    raise requests.exceptions.RequestException("Error updating events on server:{}".format(response.msg))
+                else:
+                    for event in events:
+                        event.delete(event)
 
-    except:
-        pass
+
+        except requests.exceptions.RequestException as e:
+            print (e)
+            pass

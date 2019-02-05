@@ -1,8 +1,19 @@
+import enum
 from marshmallow import Schema, fields
 
 from app.models.base import db, CRUD
-from app.models.enums import UserTypesEnum, UserTypeField
 
+class UserTypesEnum(enum.Enum):
+	STUDENT = "Student"
+	PROFESSOR = "Professor"
+	EMPLOYEE = "Employee"
+
+class UserTypeField(fields.Field):
+	def _serialize(self, value, attr, obj):
+		if value is None:
+			return ""
+		else:
+			return value.name
 
 class Keyring(db.Model, CRUD):
 	__tablename__ = "keyrings"

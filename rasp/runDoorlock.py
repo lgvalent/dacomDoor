@@ -1,52 +1,40 @@
 # -*- coding: utf8 -*-
 import time
 import RPi.GPIO as GPIO
-from doorlock import RDM6300
+import _thread
  
 from doorlock.controller import beep, beeps, learnUid, checkAccess, checkSchedule
-from app.models.enums import EventTypesEnum
+from app.models.events import EventTypesEnum, Event
+from doorlock.boardModels import BoardModels
 
-ACTIVITY_LED_PIN = 24
-PUSH_BUTTON_PIN = 17
-LOCK_RELAY_PIN = 23
-
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(PUSH_BUTTON_PIN,GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(ACTIVITY_LED_PIN,GPIO.OUT)
-GPIO.output(ACTIVITY_LED_PIN,False)
-
-def blinkActivityLed():
-    GPIO.output(ACTIVITY_LED_PIN, True)
-    time.sleep(0.01)
-    GPIO.output(ACTIVITY_LED_PIN, False)
-    time.sleep(0.01)
+boardModel = BoardModels.V3.value
+# Start RFid Sensor Module and others in/out
+boardModel.setup()
 
 try:
-    # Start RFid Sensor Module
-    rfidReader = RDM6300.RDM6300(ACTIVITY_LED_PIN)
     lastUid = None
     lastUidTime = None
+    lastDBPingTime = time.time()
 
-    #Touch SchemaDB to keep connection opened on boot
-    checkAccess('000000000000', EventTypesEnum.IN, LOCK_RELAY_PIN)
- 
     print('Bring RFID card closer...')
     while True:
-        learnMode = not GPIO.input(PUSH_BUTTON_PIN)
-        if learnMode:
-            beeps(); blinkActivityLed(); blinkActivityLed(); blinkActivityLed()
+        if boardModel.isProgramButtonPushed():
+            beeps(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed()
+            print('Bring RFID card closer to learn for local access...')
 
-        blinkActivityLed()
+        if boardModel.isCommandButtonPushed():
+            boardModel.openDoor()
+
+        boardModel.blinkActivityLed()
         # Read keyring UID
-        uid = rfidReader.readUid()
-
+        uid = boardModel.rfidReader.readUid()
         if uid and (lastUid != uid or time.time()-lastUidTime>5): #Check lastUid to block repeated reading
             print('UID: %s' % uid)
             # Mark last uid
             lastUid = uid
             lastUidTime = time.time()
 
-            if learnMode:
+            if boardModel.isProgramButtonPushed():
                 print("Learning %s..." % uid)
                 if learnUid(uid):
                     print("Learned")
@@ -55,7 +43,8 @@ try:
                     print("Repeated.")
                     beeps()
             else:
-                if checkAccess(uid, EventTypesEnum.IN, LOCK_RELAY_PIN):
+                if checkAccess(uid, EventTypesEnum.IN):
+                    _thread.start_new_thread(boardModel.openDoor, ())
                     beep()
                 else:
                     beeps()
@@ -63,8 +52,13 @@ try:
         else:
             time.sleep(.25)
 
+         #Lucio 20190131: Keep DB Connection alive to avoid SessionClosed after long inactive time
+        if((time.time() - lastDBPingTime)>300):
+            lastDBPingTime = time.time()
+            Event.query.get(1)
+
+
 except KeyboardInterrupt:
     # Check if user press CTRL+C
-    GPIO.cleanup()
     print('\nEnd of program.')
 
