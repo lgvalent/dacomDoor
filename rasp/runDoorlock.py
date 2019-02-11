@@ -2,10 +2,13 @@
 import time
 import RPi.GPIO as GPIO
 import _thread
- 
+from subprocess import call
+
 from doorlock.controller import beep, beeps, learnUid, checkAccess, checkSchedule
 from app.models.events import EventTypesEnum, Event
 from doorlock.boardModels import BoardModels
+
+
 
 boardModel = BoardModels.V3.value
 # Start RFid Sensor Module and others in/out
@@ -18,6 +21,9 @@ try:
 
     print('Bring RFID card closer...')
     while True:
+        if boardModel.isProgramButtonPushed() and boardModel.isCommandButtonPushed():
+            call("sudo shutdown now", shell=True) 
+
         if boardModel.isProgramButtonPushed():
             beeps(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed()
             print('Bring RFID card closer to learn for local access...')
