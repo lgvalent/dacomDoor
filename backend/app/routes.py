@@ -4,7 +4,7 @@ from app.resources import *
 #api.add_resource(SearchUsuario, "/pesquisa")
 #api.add_resource(SearchEvento,"/pesquisa/evento")
 
-api.add_resource(AdminResource, "/admins/<int:id>")
+api.add_resource(AdminResource, "/admin/<int:id>")
 api.add_resource(AdminListResource, "/admins")
 
 api.add_resource(UserResource, "/user/<int:id>")
