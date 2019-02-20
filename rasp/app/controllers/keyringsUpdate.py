@@ -1,6 +1,7 @@
 import requests
 import dateutil.parser
 from app import db
+from datetime import datetime
 
 from app.models.keyrings import Keyring, KeyringSchema
 
@@ -40,6 +41,8 @@ class KeyringsUpdate:
                 raise requests.exceptions.RequestException("Response: Code[{}]\n{}".format(response.status_code, response.text))
 
             results = response.json()
+
+            print(results)
 
             # persist
             for result in results["updated"]:

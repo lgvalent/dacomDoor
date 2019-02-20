@@ -25,21 +25,21 @@ class SchedulesUpdate:
             .first()
         )
 
-        # se bd vazio
+       # if DB is empty
         if not schedule:
-            data = {
-                "lastUpdate": config.ROOM_LAST_UPDATE_FAKE,
-                "room": config.ROOM_NAME
-            }
+            lastUpdate = config.ROOM_LAST_UPDATE_FAKE
         else:
-            data = {
-                "lastUpdate": schedule.lastUpdate,
-                "room": config.ROOM_NAME
-            }
+            lastUpdate = schedule.lastUpdate
 
         # post
         try:
-            response = requests.post(config.URL_SERVER + "/rasp/schedule", json=data)
+            response = requests.get(config.URL_SERVER + "/doorlock/" + config.ROOM_NAME + "/schedules", {"lastUpdate" : lastUpdate})
+            if(response.status_code == 204): #NO CONTENT
+                return
+
+            if(response.status_code != 200):
+                raise requests.exceptions.RequestException("Response: Code[{}]\n{}".format(response.status_code, response.text))
+
             results = response.json()
 
             # persiste

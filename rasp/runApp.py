@@ -27,8 +27,8 @@ def tasks():
     #print ("Updating...")
     KeyringsUpdate().update()
     time.sleep(1)
-    #SchedulesUpdate().update()
-    #time.sleep(1)
+    SchedulesUpdate().update()
+    time.sleep(1)
     EventsUpdate().update()
     time.sleep(1)
     Timer(2, tasks).start() #make loop forever

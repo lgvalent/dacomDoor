@@ -16,7 +16,7 @@ class RDM6300(AbstractSensor):
 
 		self.activityPin = activityPin
 
-	def readUid(self):
+	def readFullUid(self):
 		ID = ""
 		read_byte = self.serial.read()
 		if read_byte == b'\x02':
@@ -27,6 +27,10 @@ class RDM6300(AbstractSensor):
 			self.serial.read(1000) #flush()
 			GPIO.output(self.activityPin, False)
 		return ID
+
+	def readUid(self):
+		ID = self.readFullUid()
+		return ID[2:10]
 
 def _test():
 	#Test

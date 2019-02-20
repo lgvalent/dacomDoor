@@ -5,12 +5,16 @@ import RPi.GPIO as GPIO
 
 from datetime import datetime
 
+from app import db
+
 from app.models.keyrings import Keyring, UserTypesEnum
 from app.models.schedules import Schedule, DaysOfWeekEnum
 from app.models.events import Event
 
 
 def checkSchedule(uid):
+    db.session.commit() #Lucio 20180912: This session was not synchronyzing with DB when other process inserts events
+
     keyring = Keyring.query.filter(Keyring.uid == uid).first()
     if keyring != None:
         now = datetime.now()
