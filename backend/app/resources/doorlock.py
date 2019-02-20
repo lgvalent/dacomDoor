@@ -26,8 +26,9 @@ class DoorlockKeyringsResource(Resource):
 
 		if len(roomUsers) == 0:
 			return "", 204
-
 		for roomUser in roomUsers:
+			print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>.")
+			print(roomUser.active)
 			if roomUser.active:
 				updated.append({
 					"userId" : roomUser.userId,
@@ -81,4 +82,28 @@ class DoorlockEventsResource(Resource):
 
 class DoorlockSchedulesResource(Resource):
 	def get(self, roomName):
-		return None
+		lastUpdate = datetime.strptime(request.args.get("lastUpdate"), "%Y-%m-%d %H:%M:%S")
+		
+		results, updated, removed = {}, [], []
+
+		schedules = Schedule.query.filter(Schedule.lastUpdate > lastUpdate).all()
+
+		if len(schedules) == 0:
+			return "", 204
+
+		for schedule in schedules:
+			if schedule.active:
+				updated.append({
+					"id" : schedule.id,
+					"roomId" : schedule.roomId,
+					"userType" : schedule.userType.name,
+					"dayOfWeek" : schedule.dayOfWeek.name,
+					"beginTime" : schedule.beginTime.strftime("%H:%M"),
+					"endTime" : schedule.endTime.strftime("%H:%M"),
+					"lastUpdate" : schedule.lastUpdate
+				})
+			else:
+				removed.append({"id": schedule.id})
+		results["updated"] = updated
+		results["removed"] = removed
+		return jsonify(results)
