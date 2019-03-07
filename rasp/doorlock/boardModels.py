@@ -47,5 +47,5 @@ class BoardModel:
         GPIO.output(self.lockRelayPin, 0)
 
 class BoardModels(Enum):
-    V2 = BoardModel(24,25,17,23,5, '/dev/serial0')
-    V3 = BoardModel(25,16,12,23,5,'/dev/serial0')
+    V2 = BoardModel(24,25,17,23,3, '/dev/serial0')
+    V3 = BoardModel(25,16,12,23,3,'/dev/serial0')

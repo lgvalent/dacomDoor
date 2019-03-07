@@ -20,20 +20,21 @@ def checkSchedule(uid):
         now = datetime.now()
         dayOfWeek = list(DaysOfWeekEnum)[now.weekday()].name
 
-        if(keyring.userType != UserTypesEnum.STUDENT):
+        if keyring.userType != UserTypesEnum.STUDENT:
             return True
         else:
-            schedules = (Schedule.query
+            if Schedule.query.count() > 0:
+                if (Schedule.query
                 .filter(Schedule.userType == keyring.userType)
                 .filter(Schedule.dayOfWeek == dayOfWeek)
                 .filter(Schedule.beginTime <= now.time())
                 .filter(Schedule.endTime >= now.time())
-                .all()
-            )
-            if schedules != []:
-                return True
+                .count()) > 0:
+                    return True
+                else:
+                    return False
             else:
-                return False
+                return True
 
 def learnUid(uid):
     keyring = Keyring.query.filter(Keyring.uid == uid).first()

@@ -46,6 +46,7 @@ class SchedulesUpdate:
             for result in results["updated"]:
                 schedule = Schedule.query.get(result["id"])
                 if not schedule:
+                    print ("Adding new schedule {}.".format(result))
                     schedule = Schedule(
                         result["id"],
                         result["dayOfWeek"],
@@ -56,6 +57,7 @@ class SchedulesUpdate:
                     )
                     schedule.add(schedule)
                 else:
+                    print ("Updating schedule {}.".format(result))
                     schedule.dayOfWeek = result["dayOfWeek"]
                     schedule.beginTime = result["beginTime"]
                     schedule.endTime = result["endTime"]
@@ -65,6 +67,7 @@ class SchedulesUpdate:
 
             # remove
             for result in results["removed"]:
+                print ("Removing schedule {}.".format(result))
                 schedule = (
                     Schedule.query
                     .filter(schedule.id == result["id"])
