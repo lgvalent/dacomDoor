@@ -7,7 +7,7 @@ from subprocess import call
 import RPi.GPIO as GPIO
 
 import config
-from doorlock.controller import beep, beeps, learnUid, checkAccess, checkSchedule
+from doorlock.controller import learnUid, checkAccess, checkSchedule
 from app.models.events import EventTypesEnum, Event
 from doorlock.boardModels import BoardModels
 

@@ -1,4 +1,3 @@
-import pygame
 import os
 import time
 import RPi.GPIO as GPIO

@@ -1,3 +1,4 @@
+import pygame
 from enum import Enum
 import RPi.GPIO as GPIO
 import time
