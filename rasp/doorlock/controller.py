@@ -68,15 +68,3 @@ def checkAccess(uid, eventType):
     return allowed
 
 
-def beep():
-    pygame.init()
-
-    pygame.mixer.music.load(os.path.dirname(__file__) + "/beep.wav")
-    pygame.mixer.music.play()
-
-def beeps():
-    pygame.init()
-
-    pygame.mixer.music.load(os.path.dirname(__file__) + "/beeps.wav")
-    pygame.mixer.music.play()
-

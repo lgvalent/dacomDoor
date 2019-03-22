@@ -1,16 +1,30 @@
 # -*- coding: utf8 -*-
 import time
-import RPi.GPIO as GPIO
+import argparse
 import _thread
 from subprocess import call
 
+import RPi.GPIO as GPIO
+
+import config
 from doorlock.controller import beep, beeps, learnUid, checkAccess, checkSchedule
 from app.models.events import EventTypesEnum, Event
 from doorlock.boardModels import BoardModels
 
+parser = argparse.ArgumentParser(description='Use runDoorlock.py alone or with paramater to override config.py')
+parser.add_argument('-r', dest='roomName', help='Specify room code (may be room short name) like "-r E003"')
+parser.add_argument('-v', dest='boardVersion', type=int, choices=range(1,5), help='Specify board version, with pins definition "-v 2|3|4"')
+parser.add_argument('-d', dest='relayDelay', type=float,  help='Specify delay time, in seconds, to keep relay door active "-d .5" for half second')
+args = parser.parse_args()
 
+try:
+    config.ROOM_NAME = args.roomName if args.roomName != None else config.ROOM_NAME
+    config.BOARD_VERSION = args.boardVersion if args.boardVersion != None else config.BOARD_VERSION
+    config.RELAY_DELAY = args.relayDelay if args.relayDelay != None else config.RELAY_DELAY
+except:
+    pass
 
-boardModel = BoardModels.V3.value
+boardModel = list(BoardModels)[config.BOARD_VERSION-1].value
 # Start RFid Sensor Module and others in/out
 boardModel.setup()
 
@@ -25,7 +39,7 @@ try:
             call("sudo shutdown now", shell=True) 
 
         if boardModel.isProgramButtonPushed():
-            beeps(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed()
+            boardModel.beepNoOk(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed()
             print('Bring RFID card closer to learn for local access...')
 
         if boardModel.isCommandButtonPushed():
@@ -44,16 +58,16 @@ try:
                 print("Learning %s..." % uid)
                 if learnUid(uid):
                     print("Learned")
-                    beep()
+                    boardModel.beepOk()
                 else:
                     print("Repeated.")
-                    beeps()
+                    boardModel.beepNoOk()
+                    boardModel.beepNoOk()
             else:
                 if checkAccess(uid, EventTypesEnum.IN):
                     _thread.start_new_thread(boardModel.openDoor, ())
-                    beep()
                 else:
-                    beeps()
+                    boardModel.beepNoOk()
             print("Ready...")
         else:
             time.sleep(.25)
@@ -62,7 +76,6 @@ try:
         if((time.time() - lastDBPingTime)>300):
             lastDBPingTime = time.time()
             Event.query.get(1)
-
 
 except KeyboardInterrupt:
     # Check if user press CTRL+C

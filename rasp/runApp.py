@@ -15,9 +15,9 @@ parser.add_argument('-d', dest='updateDelay', help='Specify delay time, in secon
 args = parser.parse_args()
 
 try:
-    config.ROOM_NAME = args.roomName if args.roomName != None else config.ROOM_NAME;
-    config.URL_SERVER = args.urlServer if args.roomName != None else config.URL_SERVER;
-    config.UPDATE_DELAY = args.updateDelay if args.roomName != None else config.UPDATE_DELAY;
+    config.ROOM_NAME = args.roomName if args.roomName != None else config.ROOM_NAME
+    config.URL_SERVER = args.urlServer if args.roomName != None else config.URL_SERVER
+    config.UPDATE_DELAY = args.updateDelay if args.roomName != None else config.UPDATE_DELAY
 except:
     pass
 
