@@ -22,13 +22,11 @@ class DoorlockKeyringsResource(Resource):
 		
 		results, updated, removed = {}, [], []
 
-		roomUsers = RoomUser.query.join(RoomUser.user).filter(or_(RoomUser.lastUpdate > lastUpdate, User.lastUpdate > lastUpdate)).all()
+		roomUsers = RoomUser.query.join(RoomUser.user).join(RoomUser.room).filter(Room.name == roomName).filter(or_(RoomUser.lastUpdate > lastUpdate, User.lastUpdate > lastUpdate)).all()
 
 		if len(roomUsers) == 0:
 			return "", 204
 		for roomUser in roomUsers:
-			print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>.")
-			print(roomUser.active)
 			if roomUser.active:
 				updated.append({
 					"userId" : roomUser.userId,
