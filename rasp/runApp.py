@@ -9,15 +9,15 @@ from app.controllers.schedulesUpdate import SchedulesUpdate
 import config
 
 parser = argparse.ArgumentParser(description='Use runApp.py alone or with paramater to override config.py')
-parser.add_argument('-r', dest='roomName', help='Specify room code (may be room short name) like "-r E003"')
-parser.add_argument('-u', dest='urlServer', help='Specify server URL with name and port like "-u http://localhost:5000"')
-parser.add_argument('-d', dest='updateDelay', help='Specify delay time, in seconds, to update each buffer "-d 60"')
+parser.add_argument('-r', dest='roomName', type=str, help='Specify room code (may be room short name) like "-r E003"')
+parser.add_argument('-u', dest='urlServer', type=str, help='Specify server URL with name and port like "-u http://localhost:5000"')
+parser.add_argument('-d', dest='updateDelay', type=float, help='Specify delay time, in seconds, to update each buffer "-d 60"')
 args = parser.parse_args()
 
 try:
     config.ROOM_NAME = args.roomName if args.roomName != None else config.ROOM_NAME
-    config.URL_SERVER = args.urlServer if args.roomName != None else config.URL_SERVER
-    config.UPDATE_DELAY = args.updateDelay if args.roomName != None else config.UPDATE_DELAY
+    config.URL_SERVER = args.urlServer if args.urlServer != None else config.URL_SERVER
+    config.UPDATE_DELAY = args.updateDelay if args.updateDelay != None else config.UPDATE_DELAY
 except:
     pass
 
