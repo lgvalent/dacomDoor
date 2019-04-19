@@ -84,3 +84,4 @@ class BoardModels(Enum):
     V2 = BoardModel(23,3,24,25,17,-1, '/dev/serial0')
     V3 = BoardModel(23,.1,25,16,12,-1,'/dev/serial0')
     V4 = BoardModel(23,.1,24,16,25,12,'/dev/serial0')
+    V5 = BoardModel(24,.1,23,12,25,18,'/dev/serial0')
