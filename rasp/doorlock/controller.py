@@ -19,7 +19,7 @@ def checkSchedule(uid):
         dayOfWeek = list(DaysOfWeekEnum)[now.weekday()].name
 
         if keyring.userType != UserTypesEnum.STUDENT:
-            return True
+            return keyring
         else:
             if Schedule.query.count() > 0:
                 if (Schedule.query
@@ -28,11 +28,14 @@ def checkSchedule(uid):
                 .filter(Schedule.beginTime <= now.time())
                 .filter(Schedule.endTime >= now.time())
                 .count()) > 0:
-                    return True
+                    return keyring
                 else:
-                    return False
+                    return None
             else:
-                return True
+                return keyring
+    else:
+        return None
+
 
 def learnUid(uid):
     keyring = Keyring.query.filter(Keyring.uid == uid).first()
@@ -57,12 +60,12 @@ def saveEvent(uid, eventType, time):
     event.add(event)
 
 def checkAccess(uid, eventType):
-    allowed = checkSchedule(uid)
-    if allowed:
+    keyring = checkSchedule(uid)
+    if keyring:
         print('UID: %s ALLOWED \a' % uid)
         saveEvent(uid, eventType, datetime.now())
     else:
         print('UID: %s not allowed \a\a' % uid)
-    return allowed
+    return keyring
 
 

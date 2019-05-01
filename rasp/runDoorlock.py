@@ -9,6 +9,7 @@ import RPi.GPIO as GPIO
 import config
 from doorlock.controller import learnUid, checkAccess, checkSchedule
 from app.models.events import EventTypesEnum, Event
+from app.models.keyrings import UserTypesEnum
 from doorlock.boardModels import BoardModels
 
 parser = argparse.ArgumentParser(description='Use runDoorlock.py alone or with paramater to override config.py')
@@ -64,8 +65,13 @@ try:
                     boardModel.beepNoOk()
                     boardModel.beepNoOk()
             else:
-                if checkAccess(uid, EventTypesEnum.IN):
-                    _thread.start_new_thread(boardModel.openDoor, ())
+                keyring = checkAccess(uid, EventTypesEnum.IN) 
+                if keyring:
+                    #Lucio 20190501: Keep door opened when a professor open it
+                    if keyring.userType == UserTypesEnum.PROFESSOR:
+                        _thread.start_new_thread(boardModel.toggleDoor, ())
+                    else:
+                        _thread.start_new_thread(boardModel.openDoor, ())
                 else:
                     boardModel.beepNoOk()
             print("Ready...")

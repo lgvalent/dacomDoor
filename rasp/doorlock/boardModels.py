@@ -25,11 +25,11 @@ class BoardModel:
 
         self.rfidReader =  RDM6300.RDM6300(self.activityLedPin, self.serialStr)
 
-    def blinkActivityLed(self): 
+    def blinkActivityLed(self):
         GPIO.output(self.activityLedPin, True)
         time.sleep(0.1)
         GPIO.output(self.activityLedPin, False)
-    
+
     def isProgramButtonPushed(self):
         return not GPIO.input(self.pushButtonProgramPin)
 
@@ -37,13 +37,24 @@ class BoardModel:
         return not GPIO.input(self.pushButtonCommandPin)
 
     def openDoor(self):
-        print("Opening the lock")
         GPIO.setup(self.lockRelayPin, GPIO.OUT)
         GPIO.output(self.lockRelayPin, 1)
         time.sleep(self.lockRelayDelay)
         GPIO.output(self.lockRelayPin, 0)
         self.beepOk()
 
+    def toggleDoor(self):
+        #Lucio 20190501: Only magnetic lock is able to be kept opened
+        if(self.lockRelayDelay < 2):
+            self.openDoor()
+        else:
+            GPIO.setup(self.lockRelayPin, GPIO.OUT)
+            GPIO.output(self.lockRelayPin, 1 if self.locked else 0)
+            self.locked = not self.locked
+            self.beepOk()
+            self.beepNoOk()
+            self.beepOk()
+            self.beepNoOk()
 
     def beepOk(self):
         if self.speakerPin>0:
