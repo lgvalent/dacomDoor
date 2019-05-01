@@ -27,6 +27,7 @@ except:
 
 boardModel = list(BoardModels)[config.BOARD_VERSION-1].value
 # Start RFid Sensor Module and others in/out
+boardModel.lockRelayDelay = config.RELAY_DELAY
 boardModel.setup()
 
 try:
@@ -47,6 +48,9 @@ try:
             boardModel.openDoor()
 
         boardModel.blinkActivityLed()
+        if not boardModel.locked:
+            boardModel.blinkActivityLed()
+
         # Read keyring UID
         uid = boardModel.rfidReader.readUid()
         if uid and (lastUid != uid or time.time()-lastUidTime>5): #Check lastUid to block repeated reading

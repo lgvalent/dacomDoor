@@ -1,8 +1,8 @@
-URL_SERVER = "http://localhost:5000"
-ROOM_NAME = "E101"
+URL_SERVER = "http://dacom.cm.utfpr.edu.br:19500"
+ROOM_NAME = "A001"
 ROOM_LAST_UPDATE_FAKE = "2001-01-01 00:00:00"
 UPDATE_DELAY = 60
-BOARD_VERSION = 4
+BOARD_VERSION = 5
 RELAY_DELAY = 0.1
 
 # SQLAlchemy

@@ -29,6 +29,7 @@ class BoardModel:
         GPIO.output(self.activityLedPin, True)
         time.sleep(0.1)
         GPIO.output(self.activityLedPin, False)
+        time.sleep(0.05)
 
     def isProgramButtonPushed(self):
         return not GPIO.input(self.pushButtonProgramPin)
@@ -37,10 +38,11 @@ class BoardModel:
         return not GPIO.input(self.pushButtonCommandPin)
 
     def openDoor(self):
-        GPIO.setup(self.lockRelayPin, GPIO.OUT)
-        GPIO.output(self.lockRelayPin, 1)
-        time.sleep(self.lockRelayDelay)
-        GPIO.output(self.lockRelayPin, 0)
+        if self.locked:
+            GPIO.setup(self.lockRelayPin, GPIO.OUT)
+            GPIO.output(self.lockRelayPin, 1)
+            time.sleep(self.lockRelayDelay)
+            GPIO.output(self.lockRelayPin, 0)
         self.beepOk()
 
     def toggleDoor(self):
@@ -50,11 +52,10 @@ class BoardModel:
         else:
             GPIO.setup(self.lockRelayPin, GPIO.OUT)
             GPIO.output(self.lockRelayPin, 1 if self.locked else 0)
+            for x in range(0, 3):
+                 self.beepOk() if self.locked else self.beepNoOk()
+                 self.blinkActivityLed()
             self.locked = not self.locked
-            self.beepOk()
-            self.beepNoOk()
-            self.beepOk()
-            self.beepNoOk()
 
     def beepOk(self):
         if self.speakerPin>0:
@@ -89,6 +90,7 @@ class BoardModel:
         self.pushButtonCommandPin = pushButtonCommandPin
         self.speakerPin = speakerPin
         self.serialStr = serialStr
+        self.locked = True
 
 class BoardModels(Enum):
     V1 = BoardModel(23,3,24,25,17,-1, '/dev/serial0')
