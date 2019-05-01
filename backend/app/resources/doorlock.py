@@ -84,7 +84,7 @@ class DoorlockSchedulesResource(Resource):
 		
 		results, updated, removed = {}, [], []
 
-		schedules = Schedule.query.filter(Schedule.lastUpdate > lastUpdate).all()
+		schedules = Schedule.query.join(Schedule.room).filter(Room.name == roomName).filter(Schedule.lastUpdate > lastUpdate).all()
 
 		if len(schedules) == 0:
 			return "", 204
