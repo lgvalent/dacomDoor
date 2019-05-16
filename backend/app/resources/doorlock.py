@@ -63,13 +63,9 @@ class DoorlockEventsResource(Resource):
 			user = User.query.filter(User.uid == evt['uid']).first()
 			if(user == None):
 				#Lucio 20190516: Add unknown users
-				user = User()
-				user.name = "UNKNOWN USER"
-				user.email = "unknown@user.com"
-				user.uid = evt['uid']
-				user.userType = UserTypesEnum.STUDENT
-				user.lastUpdate = datetime.now()
-				user.active = True
+				User.begin()
+				user = User("UNKNOWN USER", "unknown@user.com", evt['uid'], UserTypesEnum.STUDENT)
+				user.add(user)
 				User.commit()
 
 			result = eventSchema.load(evt)
