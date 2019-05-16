@@ -8,7 +8,7 @@ from flask import jsonify
 
 from app import db
 from app.models.event import Event, EventSchema, EventTypesEnum
-from app.models.user import User, UserSchema
+from app.models.user import User, UserSchema, UserTypesEnum
 from app.models.room import Room, RoomSchema, RoomUser, RoomUserSchema
 from app.models.schedule import Schedule, ScheduleSchema
 from app.utils import response, rollback
@@ -19,7 +19,7 @@ from app.utils import response, rollback
 class DoorlockKeyringsResource(Resource):
 	def get(self, roomName):
 		lastUpdate = datetime.strptime(request.args.get("lastUpdate"), "%Y-%m-%d %H:%M:%S")
-		
+
 		results, updated, removed = {}, [], []
 
 		roomUsers = RoomUser.query.join(RoomUser.user).join(RoomUser.room).filter(Room.name == roomName).filter(or_(RoomUser.lastUpdate > lastUpdate, User.lastUpdate > lastUpdate)).all()
@@ -62,7 +62,15 @@ class DoorlockEventsResource(Resource):
 		for evt in events:
 			user = User.query.filter(User.uid == evt['uid']).first()
 			if(user == None):
-				return 'Error updating event, UID:{} not found.'.format(evt['uid']), 400
+				#Lucio 20190516: Add unknown users
+				user = User()
+				user.name = "UNKNOWN USER"
+				user.email = "unknown@user.com"
+				user.uid = evt['uid']
+				user.userType = UserTypesEnum.STUDENT
+				user.lastUpdate = datetime.now()
+				user.active = True
+				User.commit()
 
 			result = eventSchema.load(evt)
 			if(len(result.errors)>0):
@@ -81,7 +89,7 @@ class DoorlockEventsResource(Resource):
 class DoorlockSchedulesResource(Resource):
 	def get(self, roomName):
 		lastUpdate = datetime.strptime(request.args.get("lastUpdate"), "%Y-%m-%d %H:%M:%S")
-		
+
 		results, updated, removed = {}, [], []
 
 		schedules = Schedule.query.join(Schedule.room).filter(Room.name == roomName).filter(Schedule.lastUpdate > lastUpdate).all()
