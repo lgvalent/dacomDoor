@@ -9,33 +9,36 @@ from app.models.keyrings import Keyring, UserTypesEnum
 from app.models.schedules import Schedule, DaysOfWeekEnum
 from app.models.events import Event
 
+def checkAccessType(userType):
+    db.session.commit() #Lucio 20180912: This session was not synchronyzing with DB when other process inserts events
+
+    now = datetime.now()
+    dayOfWeek = list(DaysOfWeekEnum)[now.weekday()].name
+
+    if userType != UserTypesEnum.STUDENT:
+        return True
+    else:
+        if Schedule.query.count() > 0:
+            if (Schedule.query
+                .filter(Schedule.userType == userType)
+                .filter(Schedule.dayOfWeek == dayOfWeek)
+                .filter(Schedule.beginTime <= now.time())
+                .filter(Schedule.endTime >= now.time())
+                .count()) > 0:
+                return True
+            else:
+                return None
+        else:
+            return True
 
 def checkSchedule(uid):
     db.session.commit() #Lucio 20180912: This session was not synchronyzing with DB when other process inserts events
 
     keyring = Keyring.query.filter(Keyring.uid == uid).first()
     if keyring != None:
-        now = datetime.now()
-        dayOfWeek = list(DaysOfWeekEnum)[now.weekday()].name
-
-        if keyring.userType != UserTypesEnum.STUDENT:
-            return keyring
-        else:
-            if Schedule.query.count() > 0:
-                if (Schedule.query
-                .filter(Schedule.userType == keyring.userType)
-                .filter(Schedule.dayOfWeek == dayOfWeek)
-                .filter(Schedule.beginTime <= now.time())
-                .filter(Schedule.endTime >= now.time())
-                .count()) > 0:
-                    return keyring
-                else:
-                    return None
-            else:
-                return keyring
+        return keyring if checkAccessType(keyring.userType) else None
     else:
         return None
-
 
 def learnUid(uid):
     keyring = Keyring.query.filter(Keyring.uid == uid).first()

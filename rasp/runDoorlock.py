@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 import time
+from datetime import datetime
 import argparse
 import _thread
 from subprocess import call
@@ -7,7 +8,7 @@ from subprocess import call
 import RPi.GPIO as GPIO
 
 import config
-from doorlock.controller import learnUid, checkAccess, checkSchedule
+from doorlock.controller import learnUid, checkAccess, checkSchedule, checkAccessType, saveEvent
 from app.models.events import EventTypesEnum, Event
 from app.models.keyrings import UserTypesEnum
 from doorlock.boardModels import BoardModels
@@ -38,14 +39,17 @@ try:
     print('Bring RFID card closer...')
     while True:
         if boardModel.isProgramButtonPushed() and boardModel.isCommandButtonPushed():
-            call("sudo shutdown now", shell=True) 
+            call("sudo shutdown now", shell=True)
 
         if boardModel.isProgramButtonPushed():
             boardModel.beepNoOk(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed()
             print('Bring RFID card closer to learn for local access...')
 
         if boardModel.isCommandButtonPushed():
-            boardModel.openDoor()
+            if checkAccessType(UserTypesEnum.STUDENT):
+                boardModel.openDoor()
+                saveEvent("00000000", EventTypesEnum.IN, datetime.now())
+
 
         boardModel.blinkActivityLed()
         if not boardModel.locked:
@@ -69,13 +73,17 @@ try:
                     boardModel.beepNoOk()
                     boardModel.beepNoOk()
             else:
-                keyring = checkAccess(uid, EventTypesEnum.IN) 
+                keyring = checkAccess(uid, EventTypesEnum.IN)
                 if keyring:
                     #Lucio 20190501: Keep door opened when a professor open it
                     if keyring.userType == UserTypesEnum.PROFESSOR:
                         _thread.start_new_thread(boardModel.toggleDoor, ())
                     else:
-                        _thread.start_new_thread(boardModel.openDoor, ())
+                        #Lucio 20190516: Allow employ closes an opened door
+                        if keyring.userType == UserTypesEnum.EMPLOYEE and not boardModel.locked:
+                            _thread.start_new_thread(boardModel.toggleDoor, ())
+                        else:
+                            _thread.start_new_thread(boardModel.openDoor, ())
                 else:
                     boardModel.beepNoOk()
             print("Ready...")
