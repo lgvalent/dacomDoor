@@ -13,14 +13,6 @@ from app.models.events import EventTypesEnum, Event
 from app.models.keyrings import UserTypesEnum
 from doorlock.boardModels import BoardModels
 
-def but(channel):
-            if checkAccessType(UserTypesEnum.STUDENT):
-                boardModel.openDoor()
-                saveEvent("00000000", EventTypesEnum.IN, datetime.now())
-            else:
-                boardModel.beepNoOk()
-
-
 parser = argparse.ArgumentParser(description='Use runDoorlock.py alone or with paramater to override config.py')
 parser.add_argument('-r', dest='roomName', help='Specify room code (may be room short name) like "-r E003"')
 parser.add_argument('-v', dest='boardVersion', type=int, choices=range(1,5), help='Specify board version, with pins definition "-v 2|3|4"')
@@ -44,7 +36,6 @@ try:
     lastUidTime = None
     lastDBPingTime = time.time()
 
-    GPIO.add_event_detect(boardModel.pushButtonCommandPin, GPIO.RISING, callbak=but)
     print('Bring RFID card closer...')
     while True:
         if boardModel.isProgramButtonPushed() and boardModel.isCommandButtonPushed():
@@ -54,7 +45,12 @@ try:
             boardModel.beepNoOk(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed()
             print('Bring RFID card closer to learn for local access...')
 
-
+        if boardModel.isCommandButtonPushed():
+            if checkAccessType(UserTypesEnum.STUDENT):
+                boardModel.openDoor()
+                saveEvent("00000000", EventTypesEnum.IN, datetime.now())
+            else:
+                boardModel.beepNoOk()
 
         boardModel.blinkActivityLed()
         if not boardModel.locked:
@@ -103,4 +99,3 @@ try:
 except KeyboardInterrupt:
     # Check if user press CTRL+C
     print('\nEnd of program.')
-
