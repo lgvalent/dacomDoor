@@ -49,7 +49,8 @@ try:
             if checkAccessType(UserTypesEnum.STUDENT):
                 boardModel.openDoor()
                 saveEvent("00000000", EventTypesEnum.IN, datetime.now())
-
+            else:
+                boardModel.beepNoOk()
 
         boardModel.blinkActivityLed()
         if not boardModel.locked:
