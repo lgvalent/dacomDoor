@@ -37,6 +37,18 @@ class BoardModel:
     def isCommandButtonPushed(self):
         return not GPIO.input(self.pushButtonCommandPin)
 
+    def __execCommandButtonCallback(self, callbackFunction):
+        #Lucio 20190521: Avoid 'switch bounce'
+        if time.time() - self.lastCommandButtonTime > 1:
+           self.lastCommandButtonTime = time.time()
+           self.commandButtonCallback()
+
+    def setCommandButtonCallback(self, callbackFunction):
+        self.commandButtonCallback = callbackFunction
+        self.lastCommandButtonTime = time.time()
+        GPIO.remove_event_detect(self.pushButtonCommandPin)
+        GPIO.add_event_detect(self.pushButtonCommandPin, GPIO.FALLING, callback=self.__execCommandButtonCallback)
+
     def openDoor(self):
         if self.locked:
             GPIO.setup(self.lockRelayPin, GPIO.OUT)

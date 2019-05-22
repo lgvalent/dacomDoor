@@ -31,10 +31,19 @@ boardModel = list(BoardModels)[config.BOARD_VERSION-1].value
 boardModel.lockRelayDelay = config.RELAY_DELAY
 boardModel.setup()
 
+def openByCommandButtonForStudent():
+    if checkAccessType(UserTypesEnum.STUDENT):
+        boardModel.openDoor()
+        saveEvent("00000000", EventTypesEnum.IN, datetime.now())
+    else:
+        boardModel.beepNoOk()
+
 try:
     lastUid = None
     lastUidTime = None
     lastDBPingTime = time.time()
+
+    boardModel.setCommandButtonCallback(openByCommandButtonForStudent)
 
     print('Bring RFID card closer...')
     while True:
@@ -44,13 +53,6 @@ try:
         if boardModel.isProgramButtonPushed():
             boardModel.beepNoOk(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed(); boardModel.blinkActivityLed()
             print('Bring RFID card closer to learn for local access...')
-
-        if boardModel.isCommandButtonPushed():
-            if checkAccessType(UserTypesEnum.STUDENT):
-                boardModel.openDoor()
-                saveEvent("00000000", EventTypesEnum.IN, datetime.now())
-            else:
-                boardModel.beepNoOk()
 
         boardModel.blinkActivityLed()
         if not boardModel.locked:
