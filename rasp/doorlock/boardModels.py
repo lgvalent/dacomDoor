@@ -39,9 +39,9 @@ class BoardModel:
 
     def __execCommandButtonCallback(self, callbackFunction):
         #Lucio 20190521: Avoid 'switch bounce'
-        if time.time() - self.lastCommandButtonTime > 1:
-           self.lastCommandButtonTime = time.time()
+        if time.time() - self.lastCommandButtonTime > .5:
            self.commandButtonCallback()
+           self.lastCommandButtonTime = time.time()
 
     def setCommandButtonCallback(self, callbackFunction):
         self.commandButtonCallback = callbackFunction
