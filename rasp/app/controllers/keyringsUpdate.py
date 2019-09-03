@@ -44,6 +44,17 @@ class KeyringsUpdate:
 
             print(results)
 
+            # remove
+            for result in results["removed"]:
+                keyring = (
+                    Keyring.query
+                    .filter(Keyring.userId == result["userId"])
+                    .first()
+                )
+                if keyring:
+                    print ("Removing local UID {}.".format(result["userId"]))
+                    keyring.delete(keyring)
+
             # persist
             for result in results["updated"]:
                 keyring = (
@@ -66,17 +77,6 @@ class KeyringsUpdate:
                     keyring.userType = result["userType"]
                     keyring.lastUpdate = dateutil.parser.parse(result["lastUpdate"])
                     keyring.update()
-
-            # remove
-            for result in results["removed"]:
-                keyring = (
-                    Keyring.query
-                    .filter(Keyring.userId == result["userId"])
-                    .first()
-                )
-                if keyring:
-                    print ("Removing local UID {}.".format(result["userId"]))
-                    keyring.delete(keyring)
 
         except requests.exceptions.RequestException as e:
             print (e)
