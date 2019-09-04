@@ -50,6 +50,7 @@ try:
     print('Bring RFID card closer...')
     while True:
         if boardModel.isProgramButtonPushed() and boardModel.isCommandButtonPushed():
+            boardModel.beepOk();boardModel.beepNoOk();boardModel.beepOk();
             call("sudo shutdown now", shell=True)
 
         if boardModel.isProgramButtonPushed():
