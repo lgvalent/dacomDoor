@@ -44,7 +44,9 @@ try:
     lastDBPingTime = time.time()
 
     boardModel.setCommandButtonCallback(openByCommandButtonForStudent)
+    boardModel.beepOk();boardModel.beepNoOk();boardModel.beepOk();
 
+    
     print('Bring RFID card closer...')
     while True:
         if boardModel.isProgramButtonPushed() and boardModel.isCommandButtonPushed():
