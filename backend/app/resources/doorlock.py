@@ -23,10 +23,12 @@ class DoorlockKeyringsResource(Resource):
 		results, updated, removed = {}, [], []
 
 		roomUsers = RoomUser.query.join(RoomUser.user).join(RoomUser.room).filter(Room.name == roomName).filter(or_(RoomUser.lastUpdate > lastUpdate, User.lastUpdate > lastUpdate)).all()
+		roomId = 0
 
 		if len(roomUsers) == 0:
 			return "", 204
 		for roomUser in roomUsers:
+			roomId = roomUser.roomId
 			if roomUser.active:
 				updated.append({
 					"userId" : roomUser.userId,
@@ -38,6 +40,13 @@ class DoorlockKeyringsResource(Resource):
 				removed.append({"userId": roomUser.userId})
 		results["updated"] = updated
 		results["removed"] = removed
+ 		
+		try:
+ 			room = Room.query.get(roomId)
+			room.lastSynchronization = datetime.now()
+			room.update()
+		except SQLAlchemyError as e:
+
 		return jsonify(results)
 
 '''

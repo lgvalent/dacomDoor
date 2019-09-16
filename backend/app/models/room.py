@@ -17,6 +17,8 @@ class RoomUser(db.Model, CRUD):
 	lastUpdate = db.Column(db.DateTime(), nullable=False)
 	active = db.Column(db.Boolean, nullable=False)
 
+	description = db.Column(db.String(255), unique=True)
+
 	def __init__(self):
 		self.lastUpdate = datetime.now()
 		self.active = True
@@ -29,6 +31,7 @@ class Room(db.Model, CRUD):
 	schedules = db.relationship("Schedule", backref="room.id", cascade="delete", lazy=False)
 	users = db.relationship("RoomUser", cascade="all", lazy=False)
 	lastUpdate = db.Column(db.DateTime(), nullable=False)
+	lastSynchronization = db.Column(db.DateTime(), nullable=False)
 	active = db.Column(db.Boolean, nullable=False)
 
 	def __init__(self):
@@ -42,6 +45,7 @@ class RoomUserSchema(Schema):
 	user = fields.Nested(UserSchema)
 	lastUpdate = fields.DateTime()
 	active = fields.Boolean()
+	description = fields.String()
 
 	class Meta:
 		type_ = "roomUser"
@@ -52,6 +56,7 @@ class RoomSchema(Schema):
 	schedules = fields.Nested(ScheduleSchema, many=True)
 	users = fields.Nested(RoomUserSchema, many=True)
 	lastUpdate = fields.DateTime()
+	lastSynchronization = fields.DateTime()
 	active = fields.Boolean()
 
 	class Meta:
