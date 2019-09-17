@@ -18,12 +18,19 @@ from app.utils import response, rollback
 '''
 class DoorlockKeyringsResource(Resource):
 	def get(self, roomName):
+		try:
+			room = Room.query.filter(Room.name == roomName).first()
+			room.lastSynchronization = datetime.now()
+			room.lastAddress = request.remote_addr
+			room.update()
+		except SQLAlchemyError as e:
+			print(e)
+
 		lastUpdate = datetime.strptime(request.args.get("lastUpdate"), "%Y-%m-%d %H:%M:%S")
 
 		results, updated, removed = {}, [], []
 
 		roomUsers = RoomUser.query.join(RoomUser.user).join(RoomUser.room).filter(Room.name == roomName).filter(or_(RoomUser.lastUpdate > lastUpdate, User.lastUpdate > lastUpdate)).all()
-		roomId = 0
 
 		if len(roomUsers) == 0:
 			return "", 204
@@ -40,12 +47,6 @@ class DoorlockKeyringsResource(Resource):
 				removed.append({"userId": roomUser.userId})
 		results["updated"] = updated
 		results["removed"] = removed
- 		
-		try:
- 			room = Room.query.get(roomId)
-			room.lastSynchronization = datetime.now()
-			room.update()
-		except SQLAlchemyError as e:
 
 		return jsonify(results)
 
