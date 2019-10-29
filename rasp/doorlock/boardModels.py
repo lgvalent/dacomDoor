@@ -44,6 +44,10 @@ class BoardModel:
         if self.doorOpenedPin>0:
             return not GPIO.input(self.doorOpenedPin)
 
+    def isLightOn(self):
+        if self.lightSensorPin>0:
+            return GPIO.input(self.lightSensorPin)
+
     def __execCommandButtonCallback(self, callbackFunction):
         #Lucio 20190521: Avoid 'switch bounce'
         if time.time() - self.lastCommandButtonTime > .5:
@@ -101,7 +105,7 @@ class BoardModel:
             time.sleep(delay)
             speakerPwm.stop()
         
-    def __init__(self, lockRelayPin, lockRelayDelay, activityLedPin, pushButtonProgramPin, pushButtonCommandPin, speakerPin, doorOpenedPin, serialStr):
+    def __init__(self, lockRelayPin, lockRelayDelay, activityLedPin, pushButtonProgramPin, pushButtonCommandPin, speakerPin, doorOpenedPin, lightSensorPin, serialStr):
         self.lockRelayPin = lockRelayPin
         self.lockRelayDelay = lockRelayDelay
         self.activityLedPin = activityLedPin
@@ -109,14 +113,15 @@ class BoardModel:
         self.pushButtonCommandPin = pushButtonCommandPin
         self.speakerPin = speakerPin
         self.doorOpenedPin = doorOpenedPin
+        self.lightSensorPin = lightSensorPin
         self.serialStr = serialStr
         self.locked = True
 
 class BoardModels(Enum):
-    V1 = BoardModel(23,3,24,25,17,-1,-1, '/dev/serial0')
-    V2 = BoardModel(23,3,24,25,17,-1,-1, '/dev/serial0')
-    V3 = BoardModel(23,.1,25,16,12,-1,-1,'/dev/serial0')
-    V4 = BoardModel(23,.1,24,16,25,12,-1,'/dev/serial0')
-    V5 = BoardModel(24,.1,23,12,25,18,16,'/dev/serial0')
-    V6 = BoardModel(21,.1,16,18,23,12,16,'/dev/serial0')
+    V1 = BoardModel(23, 3,24,25,17,-1,-1,-1,'/dev/serial0')
+    V2 = BoardModel(23, 3,24,25,17,-1,-1,-1,'/dev/serial0')
+    V3 = BoardModel(23,.1,25,16,12,-1,-1,-1,'/dev/serial0')
+    V4 = BoardModel(23,.1,24,16,25,12,-1,-1,'/dev/serial0')
+    V5 = BoardModel(24,.1,23,12,25,18,16,-1,'/dev/serial0')
+    V6 = BoardModel(21,.1,16,18,23,12,25,24,'/dev/serial0')
 
