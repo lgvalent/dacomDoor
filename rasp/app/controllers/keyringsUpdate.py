@@ -1,5 +1,6 @@
 import requests
 import dateutil.parser
+import socket
 from app import db
 from datetime import datetime
 
@@ -33,7 +34,12 @@ class KeyringsUpdate:
 
         # post
         try:
-            response = requests.get(config.URL_SERVER + "/doorlock/" + config.ROOM_NAME + "/keyrings", {"lastUpdate" : lastUpdate})
+            #Findind local IP addresses: https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            headers= {"local_addr": s.getsockname()[0]}
+
+            response = requests.get(config.URL_SERVER + "/doorlock/" + config.ROOM_NAME + "/keyrings", {"lastUpdate" : lastUpdate}, headers=headers)
             if(response.status_code == 204): #NO CONTENT
                 return
 
