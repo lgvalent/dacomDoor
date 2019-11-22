@@ -21,7 +21,10 @@ class DoorlockKeyringsResource(Resource):
 		try:
 			room = Room.query.filter(Room.name == roomName).first()
 			room.lastSynchronization = datetime.now()
-			room.lastAddress = request.remote_addr
+			if request.has_key("local_addr"):
+				room.lastAddress = request.get("local_addr", type=str)
+			else:
+				room.lastAddress = request.remote_addr
 			room.update()
 		except SQLAlchemyError as e:
 			print(e)
