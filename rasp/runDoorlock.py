@@ -17,12 +17,14 @@ parser = argparse.ArgumentParser(description='Use runDoorlock.py alone or with p
 parser.add_argument('-r', dest='roomName', help='Specify room code (may be room short name) like "-r E003"')
 parser.add_argument('-v', dest='boardVersion', type=int, choices=range(1,5), help='Specify board version, with pins definition "-v 2|3|4"')
 parser.add_argument('-d', dest='relayDelay', type=float,  help='Specify delay time, in seconds, to keep relay door active "-d .5" for half second')
+parser.add_argument('-o', dest='doorOpenedAlertDelay', type=int,  help='Specify delay time, in seconds, to alert door opened')
 args = parser.parse_args()
 
 try:
     config.ROOM_NAME = args.roomName if args.roomName != None else config.ROOM_NAME
     config.BOARD_VERSION = args.boardVersion if args.boardVersion != None else config.BOARD_VERSION
     config.RELAY_DELAY = args.relayDelay if args.relayDelay != None else config.RELAY_DELAY
+    config.DOOR_OPENED_ALERT_DELAY = args.doorOpenedAlertDelay if args.doorOpenedAlertDelay != None else config.DOOR_OPENED_ALERT_DELAY
 except:
     pass
 
@@ -32,25 +34,38 @@ boardModel.lockRelayDelay = config.RELAY_DELAY
 boardModel.setup()
 
 def openByCommandButtonForStudent():
-    if checkAccessType(UserTypesEnum.STUDENT):
+    if boardModel.isLightOn():
         boardModel.openDoor()
         saveEvent("00000000", EventTypesEnum.IN, datetime.now())
     else:
         boardModel.beepNoOk()
 
+def detectDoorOpened():
+    global lastDoorOpenTime
+    if boardModel.isDoorOpened():
+        lastDoorOpenTime = time.time()
+    else:
+        lastDoorOpenTime = None
+
+
 try:
     lastUid = None
     lastUidTime = None
     lastDBPingTime = time.time()
+    lastDoorOpenTime = None
 
     boardModel.setCommandButtonCallback(openByCommandButtonForStudent)
-    boardModel.beepOk();boardModel.beepNoOk();boardModel.beepOk();
+    boardModel.setDoorSensorCallback(detectDoorOpened)
+    boardModel.beepOk();boardModel.beepNoOk();boardModel.beepOk()
 
     
     print('Bring RFID card closer...')
     while True:
+        if lastDoorOpenTime and (time.time() - lastDoorOpenTime > config.DOOR_OPENED_ALERT_DELAY):    
+            boardModel.beepNoOk(); boardModel.blinkActivityLed()
+
         if boardModel.isProgramButtonPushed() and boardModel.isCommandButtonPushed():
-            boardModel.beepOk();boardModel.beepNoOk();boardModel.beepOk();
+            boardModel.beepOk();boardModel.beepNoOk();boardModel.beepOk()
             call("sudo shutdown now", shell=True)
 
         if boardModel.isProgramButtonPushed():

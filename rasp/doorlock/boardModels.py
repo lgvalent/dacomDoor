@@ -23,8 +23,11 @@ class BoardModel:
             GPIO.setup(self.speakerPin, GPIO.OUT)
             GPIO.output(self.speakerPin, False)
 
-        if self.doorOpenedPin>0:
-                GPIO.setup(self.doorOpenedPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        if self.doorSensorPin>0:
+                GPIO.setup(self.doorSensorPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+        if self.lightSensorPin>0:
+                GPIO.setup(self.lightSensorPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     
         self.rfidReader =  RDM6300.RDM6300(self.activityLedPin, self.serialStr)
 
@@ -41,16 +44,20 @@ class BoardModel:
         return not GPIO.input(self.pushButtonCommandPin)
 
     def isDoorOpened(self):
-        if self.doorOpenedPin>0:
-            return not GPIO.input(self.doorOpenedPin)
+        if self.doorSensorPin>0:
+            return GPIO.input(self.doorSensorPin)
+        else:
+            return False
 
     def isLightOn(self):
         if self.lightSensorPin>0:
-            return GPIO.input(self.lightSensorPin)
+            return not GPIO.input(self.lightSensorPin)
+        else:
+            return True
 
-    def __execCommandButtonCallback(self, callbackFunction):
+    def __execCommandButtonCallback(self, pinNumber):
         #Lucio 20190521: Avoid 'switch bounce'
-        if time.time() - self.lastCommandButtonTime > .5:
+        if time.time() - self.lastCommandButtonTime > 1:
            self.commandButtonCallback()
            self.lastCommandButtonTime = time.time()
 
@@ -58,7 +65,19 @@ class BoardModel:
         self.commandButtonCallback = callbackFunction
         self.lastCommandButtonTime = time.time()
         GPIO.remove_event_detect(self.pushButtonCommandPin)
-        GPIO.add_event_detect(self.pushButtonCommandPin, GPIO.FALLING, callback=self.__execCommandButtonCallback)
+        GPIO.add_event_detect(self.pushButtonCommandPin, GPIO.FALLING, callback=self.__execCommandButtonCallback, bouncetime=1000)
+
+    def __execDoorSensorCallback(self, pinNumber):
+        #Lucio 20190521: Avoid 'switch bounce'
+        if time.time() - self.lastDoorSensorTime > 1:
+           self.doorSensorCallback()
+           self.lastCommandButtonTime = time.time()
+
+    def setDoorSensorCallback(self, callbackFunction):
+        self.doorSensorCallback = callbackFunction
+        self.lastDoorSensorTime = time.time()
+        GPIO.remove_event_detect(self.doorSensorPin)
+        GPIO.add_event_detect(self.doorSensorPin, GPIO.BOTH, callback=self.__execDoorSensorCallback)
 
     def openDoor(self):
         if self.locked:
@@ -105,17 +124,21 @@ class BoardModel:
             time.sleep(delay)
             speakerPwm.stop()
         
-    def __init__(self, lockRelayPin, lockRelayDelay, activityLedPin, pushButtonProgramPin, pushButtonCommandPin, speakerPin, doorOpenedPin, lightSensorPin, serialStr):
+    def __init__(self, lockRelayPin, lockRelayDelay, activityLedPin, pushButtonProgramPin, pushButtonCommandPin, speakerPin, doorSensorPin, lightSensorPin, serialStr):
         self.lockRelayPin = lockRelayPin
         self.lockRelayDelay = lockRelayDelay
         self.activityLedPin = activityLedPin
         self.pushButtonProgramPin = pushButtonProgramPin
         self.pushButtonCommandPin = pushButtonCommandPin
         self.speakerPin = speakerPin
-        self.doorOpenedPin = doorOpenedPin
+        self.doorSensorPin = doorSensorPin
         self.lightSensorPin = lightSensorPin
         self.serialStr = serialStr
         self.locked = True
+
+        self.commandButtonCallback = None
+        self.doorSensorCallback = None
+
 
 class BoardModels(Enum):
     V1 = BoardModel(23, 3,24,25,17,-1,-1,-1,'/dev/serial0')
