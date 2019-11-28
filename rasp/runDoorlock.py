@@ -5,8 +5,6 @@ import argparse
 import _thread
 from subprocess import call
 
-import RPi.GPIO as GPIO
-
 import config
 from doorlock.controller import learnUid, checkAccess, checkSchedule, checkAccessType, saveEvent
 from app.models.events import EventTypesEnum, Event
@@ -30,13 +28,43 @@ except:
 
 boardModel = list(BoardModels)[config.BOARD_VERSION-1].value
 # Start RFid Sensor Module and others in/out
-boardModel.lockRelayDelay = config.RELAY_DELAY
 boardModel.setup()
+locked = True
+
+def toggleDoor(keyring):
+    global locked
+    locked = not locked
+    #Lucio 20190501: Only magnetic lock is able to be kept opened
+    if config.RELAY_DELAY > 1:
+        if locked:
+            boardModel.lock()
+        else:
+            boardModel.unlock()
+    else:
+        if not locked:
+            openDoor(keyring)
+
+    # Register IN or OUT events, the openDoor() above already register IN events!
+    if config.RELAY_DELAY >1 or locked:
+        saveEvent(keyring.uid, EventTypesEnum.OUT if locked else EventTypesEnum.IN, datetime.now())
+
+    for x in range(0, 3):
+        boardModel.beepOk() if not locked else boardModel.beepNoOk()
+        boardModel.blinkActivityLed()
+
+def openDoor(keyring):
+    if locked or config.RELAY_DELAY <= 1:
+        boardModel.unlock()
+        time.sleep(config.RELAY_DELAY)
+        boardModel.lock()
+    else:
+        boardModel.beepOk()
+
+    saveEvent(keyring.uid if keyring else None, EventTypesEnum.IN, datetime.now())
 
 def openByCommandButtonForStudent():
-    if boardModel.isLightOn():
-        boardModel.openDoor()
-        saveEvent("00000000", EventTypesEnum.IN, datetime.now())
+    if boardModel.isLightOn() or not locked:
+        openDoor(None)
     else:
         boardModel.beepNoOk()
 
@@ -47,22 +75,26 @@ def detectDoorOpened():
     else:
         lastDoorOpenTime = None
 
-
 try:
     lastUid = None
     lastUidTime = None
+    lastKeyring = None
     lastDBPingTime = time.time()
     lastDoorOpenTime = None
+    lastDoorOpenEvent = None
 
     boardModel.setCommandButtonCallback(openByCommandButtonForStudent)
     boardModel.setDoorSensorCallback(detectDoorOpened)
     boardModel.beepOk();boardModel.beepNoOk();boardModel.beepOk()
-
     
     print('Bring RFID card closer...')
     while True:
         if lastDoorOpenTime and (time.time() - lastDoorOpenTime > config.DOOR_OPENED_ALERT_DELAY):    
             boardModel.beepNoOk(); boardModel.blinkActivityLed()
+            if not lastDoorOpenEvent:
+                lastDoorOpenEvent = saveEvent(lastKeyring.uid if lastKeyring else None, EventTypesEnum.DOOR_OPENED, datetime.now())
+        else:
+            lastDoorOpenEvent = None
 
         if boardModel.isProgramButtonPushed() and boardModel.isCommandButtonPushed():
             boardModel.beepOk();boardModel.beepNoOk();boardModel.beepOk()
@@ -73,7 +105,7 @@ try:
             print('Bring RFID card closer to learn for local access...')
 
         boardModel.blinkActivityLed()
-        if not boardModel.locked:
+        if not locked:
             boardModel.blinkActivityLed()
 
         # Read keyring UID
@@ -94,17 +126,18 @@ try:
                     boardModel.beepNoOk()
                     boardModel.beepNoOk()
             else:
-                keyring = checkAccess(uid, EventTypesEnum.IN)
+                keyring = checkAccess(uid)
                 if keyring:
+                    lastKeyring = keyring
                     #Lucio 20190501: Keep door opened when a professor open it
                     if keyring.userType == UserTypesEnum.PROFESSOR:
-                        _thread.start_new_thread(boardModel.toggleDoor, ())
+                        _thread.start_new_thread(toggleDoor, (keyring,))
                     else:
                         #Lucio 20190516: Allow employ closes an opened door
-                        if keyring.userType == UserTypesEnum.EMPLOYEE and not boardModel.locked:
-                            _thread.start_new_thread(boardModel.toggleDoor, ())
+                        if keyring.userType == UserTypesEnum.EMPLOYEE and not locked:
+                            _thread.start_new_thread(toggleDoor, (keyring,))
                         else:
-                            _thread.start_new_thread(boardModel.openDoor, ())
+                            _thread.start_new_thread(openDoor, (keyring,))
                 else:
                     boardModel.beepNoOk()
             print("Ready...")

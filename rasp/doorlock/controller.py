@@ -56,17 +56,17 @@ def learnUid(uid):
 
 def saveEvent(uid, eventType, time):
     event = Event(
-                    uid,
+                    uid if uid else "00000000",
                     eventType,
                     time
             )
     event.add(event)
+    return event
 
-def checkAccess(uid, eventType):
+def checkAccess(uid):
     keyring = checkSchedule(uid)
     if keyring:
         print('UID: %s ALLOWED \a' % uid)
-        saveEvent(uid, eventType, datetime.now())
     else:
         print('UID: %s not allowed \a\a' % uid)
     return keyring

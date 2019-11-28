@@ -7,6 +7,7 @@ from app.models.base import CRUD, db
 class EventTypesEnum(enum.Enum):
 	IN = "get in"
 	OUT = "get out"
+	DOOR_OPENED = "door opened"
 
 class EventTypeField(fields.Field):
 	def _serialize(self, value, attr, obj):

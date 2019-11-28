@@ -65,7 +65,7 @@ class BoardModel:
         self.commandButtonCallback = callbackFunction
         self.lastCommandButtonTime = time.time()
         GPIO.remove_event_detect(self.pushButtonCommandPin)
-        GPIO.add_event_detect(self.pushButtonCommandPin, GPIO.FALLING, callback=self.__execCommandButtonCallback, bouncetime=1000)
+        GPIO.add_event_detect(self.pushButtonCommandPin, GPIO.FALLING, callback=self.__execCommandButtonCallback, bouncetime=500)
 
     def __execDoorSensorCallback(self, pinNumber):
         #Lucio 20190521: Avoid 'switch bounce'
@@ -79,25 +79,13 @@ class BoardModel:
         GPIO.remove_event_detect(self.doorSensorPin)
         GPIO.add_event_detect(self.doorSensorPin, GPIO.BOTH, callback=self.__execDoorSensorCallback)
 
-    def openDoor(self):
-        if self.locked:
-            GPIO.setup(self.lockRelayPin, GPIO.OUT)
-            GPIO.output(self.lockRelayPin, 1)
-            time.sleep(self.lockRelayDelay)
-            GPIO.output(self.lockRelayPin, 0)
+    def unlock(self):
+        GPIO.output(self.lockRelayPin, 1)
         self.beepOk()
 
-    def toggleDoor(self):
-        #Lucio 20190501: Only magnetic lock is able to be kept opened
-        if(self.lockRelayDelay < 2):
-            self.openDoor()
-        else:
-            GPIO.setup(self.lockRelayPin, GPIO.OUT)
-            GPIO.output(self.lockRelayPin, 1 if self.locked else 0)
-            for x in range(0, 3):
-                 self.beepOk() if self.locked else self.beepNoOk()
-                 self.blinkActivityLed()
-            self.locked = not self.locked
+    def lock(self):
+        GPIO.output(self.lockRelayPin, 0)
+        self.beepOk()
 
     def beepOk(self):
         if self.speakerPin>0:
@@ -124,9 +112,8 @@ class BoardModel:
             time.sleep(delay)
             speakerPwm.stop()
         
-    def __init__(self, lockRelayPin, lockRelayDelay, activityLedPin, pushButtonProgramPin, pushButtonCommandPin, speakerPin, doorSensorPin, lightSensorPin, serialStr):
+    def __init__(self, lockRelayPin, activityLedPin, pushButtonProgramPin, pushButtonCommandPin, speakerPin, doorSensorPin, lightSensorPin, serialStr):
         self.lockRelayPin = lockRelayPin
-        self.lockRelayDelay = lockRelayDelay
         self.activityLedPin = activityLedPin
         self.pushButtonProgramPin = pushButtonProgramPin
         self.pushButtonCommandPin = pushButtonCommandPin
@@ -141,10 +128,10 @@ class BoardModel:
 
 
 class BoardModels(Enum):
-    V1 = BoardModel(23, 3,24,25,17,-1,-1,-1,'/dev/serial0')
-    V2 = BoardModel(23, 3,24,25,17,-1,-1,-1,'/dev/serial0')
-    V3 = BoardModel(23,.1,25,16,12,-1,-1,-1,'/dev/serial0')
-    V4 = BoardModel(23,.1,24,16,25,12,-1,-1,'/dev/serial0')
-    V5 = BoardModel(24,.1,23,12,25,18,16,-1,'/dev/serial0')
-    V6 = BoardModel(21,.1,16,18,23,12,25,24,'/dev/serial0')
+    V1 = BoardModel(23,24,25,17,-1,-1,-1,'/dev/serial0')
+    V2 = BoardModel(23,24,25,17,-1,-1,-1,'/dev/serial0')
+    V3 = BoardModel(23,25,16,12,-1,-1,-1,'/dev/serial0')
+    V4 = BoardModel(23,24,16,25,12,-1,-1,'/dev/serial0')
+    V5 = BoardModel(24,23,12,25,18,16,-1,'/dev/serial0')
+    V6 = BoardModel(21,16,18,23,12,25,24,'/dev/serial0')
 
