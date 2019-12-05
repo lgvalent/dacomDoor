@@ -70,7 +70,7 @@ class SchedulesUpdate:
                 print ("Removing schedule {}.".format(result))
                 schedule = (
                     Schedule.query
-                    .filter(schedule.id == result["id"])
+                    .filter(Schedule.id == result["id"])
                     .first()
                 )
                 if schedule:
