@@ -86,10 +86,10 @@ try:
     boardModel.setCommandButtonCallback(openByCommandButtonForStudent)
     boardModel.setDoorSensorCallback(detectDoorOpened)
     boardModel.beepOk();boardModel.beepNoOk();boardModel.beepOk()
-    
+
     print('Bring RFID card closer...')
     while True:
-        if lastDoorOpenTime and (time.time() - lastDoorOpenTime > config.DOOR_OPENED_ALERT_DELAY):    
+        if locked and lastDoorOpenTime and (time.time() - lastDoorOpenTime > config.DOOR_OPENED_ALERT_DELAY):
             boardModel.beepNoOk(); boardModel.blinkActivityLed()
             if not lastDoorOpenEvent:
                 lastDoorOpenEvent = saveEvent(lastKeyring.uid if lastKeyring else None, EventTypesEnum.DOOR_OPENED, datetime.now())
