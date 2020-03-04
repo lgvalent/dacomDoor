@@ -64,8 +64,9 @@ class BoardModel:
     def setCommandButtonCallback(self, callbackFunction):
         self.commandButtonCallback = callbackFunction
         self.lastCommandButtonTime = time.time()
-        GPIO.remove_event_detect(self.pushButtonCommandPin)
-        GPIO.add_event_detect(self.pushButtonCommandPin, GPIO.FALLING, callback=self.__execCommandButtonCallback, bouncetime=500)
+        if self.pushButtonCommandPin>0:
+           GPIO.remove_event_detect(self.pushButtonCommandPin)
+           GPIO.add_event_detect(self.pushButtonCommandPin, GPIO.FALLING, callback=self.__execCommandButtonCallback, bouncetime=500)
 
     def __execDoorSensorCallback(self, pinNumber):
         #Lucio 20190521: Avoid 'switch bounce'
