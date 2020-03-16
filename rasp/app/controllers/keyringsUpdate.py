@@ -84,6 +84,6 @@ class KeyringsUpdate:
                     keyring.lastUpdate = dateutil.parser.parse(result["lastUpdate"])
                     keyring.update()
 
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             print (e)
             pass
