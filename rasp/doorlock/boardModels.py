@@ -77,8 +77,9 @@ class BoardModel:
     def setDoorSensorCallback(self, callbackFunction):
         self.doorSensorCallback = callbackFunction
         self.lastDoorSensorTime = time.time()
-        GPIO.remove_event_detect(self.doorSensorPin)
-        GPIO.add_event_detect(self.doorSensorPin, GPIO.BOTH, callback=self.__execDoorSensorCallback)
+        if self.doorSensorPin>0:
+           GPIO.remove_event_detect(self.doorSensorPin)
+           GPIO.add_event_detect(self.doorSensorPin, GPIO.BOTH, callback=self.__execDoorSensorCallback)
 
     def unlock(self):
         GPIO.output(self.lockRelayPin, 1)
