@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+	id="DacomDoorID" version="3.0"
+	metadata-complete="true">
+	<!-- metadata-complete="true" sugerido por http://www.coderanch.com/t/599269/Spring/java-lang-ClassNotFoundException-org-apache 
+	  Para rodar no Tomcat 7-->
+	<display-name>DacomDoor v01</display-name>
+	<welcome-file-list>
+		<welcome-file>index.xhtml</welcome-file>
+	</welcome-file-list>
+
+	<!--***************************JSF 2.0*************************** -->
+	<!-- JSF 2.0 Servlet -->
+	<servlet>
+		<servlet-name>FacesServlet</servlet-name>
+		<servlet-class>javax.faces.webapp.FacesServlet</servlet-class>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>FacesServlet</servlet-name>
+		<url-pattern>/faces/*</url-pattern>
+	</servlet-mapping>
+	<context-param>
+    	<param-name>javax.faces.FACELETS_SKIP_COMMENTS</param-name>
+    	<param-value>true</param-value>
+	</context-param>
+	<!--***************************Spring*************************** -->
+	<!-- Spring Listener -->
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>/WEB-INF/applicationContext.xml</param-value>
+	</context-param>
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
+
+	<!--***************************Mojarra PrimeFaces MaxView *************************** -->
+	<!-- javax.faces.application.ViewExpiredException: viewId:/index.xhtml - View /index.xhtml could not be restored.  -->
+	<!-- PrimeFaces : Source:http://stackoverflow.com/questions/5474316/why-jsf-saves-the-state-of-ui-components-on-server/5475564#5475564  -->
+	<context-param>
+    	<param-name>com.sun.faces.numberOfLogicalViews</param-name>
+    	<param-value>100</param-value>
+	</context-param>
+	
+	<!--***************************File Upload Component Filter*************************** -->
+	<!-- File Upload Component Filter -->
+		<filter>  
+	    <filter-name>PrimeFacesFileUploadFilter</filter-name>  
+	    <filter-class>org.primefaces.webapp.filter.FileUploadFilter</filter-class>  
+    	<init-param>  
+	        <param-name>uploadDirectory</param-name>  
+        	<param-value>/tmp/</param-value>  
+	    </init-param>  
+    	<init-param>  
+	        <param-name>thresholdSize</param-name>  
+    	    <param-value>100000</param-value>  
+    	</init-param>  
+	</filter>  
+	<filter-mapping>  
+	    <filter-name>PrimeFacesFileUploadFilter</filter-name>  
+	    <servlet-name>FacesServlet</servlet-name>  
+	</filter-mapping>
+	
+	<!--***************************Authentication Filter*************************** -->
+	<!-- Authentication Filter -->
+	<filter>
+		<filter-name>Authentication</filter-name>
+		<filter-class>br.com.orionsoft.monstrengo.security.web.AuthenticationFilter</filter-class>
+	  	<init-param>
+	  		<param-name>redirect</param-name>
+	 		<param-value>../../public/login/login.xhtml</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>
+		<filter-name>Authentication</filter-name>
+		<url-pattern>/faces/pages/*</url-pattern>
+	</filter-mapping>
+</web-app>

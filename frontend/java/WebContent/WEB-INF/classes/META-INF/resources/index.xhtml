@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='ISO-8859-1' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:p="http://primefaces.org/ui"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets">
+	<head>
+		<f:verbatim rendered="#{userSessionBean.logged}">
+        	<meta http-equiv="Refresh" content= "0; URL=./pages/dacomdoor/mainMenu.xhtml" />
+		</f:verbatim>
+		<f:verbatim rendered="#{!userSessionBean.logged}">
+        	<meta http-equiv="Refresh" content= "0; URL=./public/login/login.xhtml" />
+		</f:verbatim>
+		<f:verbatim rendered="false">
+	       	<meta http-equiv="Refresh" content= "0; URL=./faces/index.xhtml" />
+		</f:verbatim>
+		
+		<title>Monstrengo - Entreprise Framework</title>
+	</head>
+	<body>
+		<table>
+		  <tr>
+		  	<td>
+				<img src="./public/login/img/waiting.gif" /><br/> 
+		  	</td>
+		  	<td>
+				Aguarde enquanto sua estação é identificado e sistema é iniciado.<br/>
+				Waiting while your station is identified and system is started.<br/>
+				Por favor espere mientras su estación se identifica y se inicia el sistema.<br/>		    
+		  	</td>
+		  </tr>
+		</table>
+	</body>
+</html>

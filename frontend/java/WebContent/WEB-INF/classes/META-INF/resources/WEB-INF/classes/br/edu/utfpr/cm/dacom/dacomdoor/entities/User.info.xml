@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<entity xmlns="http://orionsoft.net.br/entityMetadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" className="br.edu.utfpr.cm.dacom.dacomdoor.entities.User" crudOperations="CREATE UPDATE RETRIEVE DELETE QUERY" colorName="green" propertiesInQueryGrid="id active userType name email uid lastUpdate" name="User" label="Usuários" xsi:schemaLocation="http://orionsoft.net.br/entityMetadata http://orionsoft.net.br/entityMetadata.xsd">
+    <group name="Geral" label="Geral" hint="" description="">
+        <property xsi:type="PropertyNumericType" name="id" label="Id"/>
+        <property xsi:type="PropertyStringType" name="name" label="Nome" required="true"/>
+        <property xsi:type="PropertyStringType" name="email" label="E-Mail" required="true"/>
+        <property xsi:type="PropertyStringType" name="uid" label="UID do chaveiro (hex)" readOnly="true" description="Define o código do chaveiro que será validado para o acesso deste usuário nas salas"/>
+        <property xsi:type="PropertyStringType" name="decUid" label="UID do chaveiro (dec)" required="true" description="Define o código do chaveiro que será validado para o acesso deste usuário nas salas"/>
+        <property xsi:type="PropertyEntityType" name="userType" label="Tipo de Usuário" required="true"/>
+        <property xsi:type="PropertyCalendarType" name="lastUpdate" label="Última atualização" readOnly="true" defaultValue="now()" editMask="dd/MM/yyyy HH:mm:ss" description="Esta propriedade é utilizada para sincronização dos dados nos nós conectados"/>
+        <property xsi:type="PropertyBooleanType" name="active" label="Ativo" defaultValue="true"/>
+    </group>
+</entity>

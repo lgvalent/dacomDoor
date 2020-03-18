@@ -1,0 +1,79 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>br.edu.utfpr</groupId>
+	<artifactId>dacomdoor-web</artifactId>
+	<version>0.0.1</version>
+	<packaging>war</packaging>
+	<name>DacomDoor WEB</name>
+	
+	<repositories>
+	  	<repository>
+  			<id>monstrengo</id>
+			<url>https://raw.githubusercontent.com/lgvalent/monstrengo/master/Monstrengo/target/</url>
+	  	</repository>
+	</repositories>
+	
+	<dependencies>
+  	<dependency>
+  		<groupId>br.com.orionsoft</groupId>
+  		<artifactId>monstrengo-core</artifactId>
+  		<version>1.0.0</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>br.com.orionsoft</groupId>
+  		<artifactId>monstrengo-web</artifactId>
+  		<version>1.0.0</version>
+  		<classifier>classes</classifier>
+  	</dependency>
+  </dependencies>
+  <build>
+		<sourceDirectory>src</sourceDirectory>
+		<resources>
+      		<resource>
+		        <directory>WebContent</directory>
+	      		<targetPath>META-INF/resources/</targetPath>
+			        <includes>
+						<include>pages/**/*.*</include>
+						<include>public/**/*.*</include>
+			        </includes>
+			</resource>
+      		<resource>
+		        <directory>WebContent</directory>
+	      		<targetPath>META-INF/</targetPath>
+			        <includes>
+						<include>/faces-config.xml</include>
+			        </includes>
+			</resource>
+    	</resources>		
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.5.1</version>
+				<configuration>
+					<source>1.7</source>
+					<target>1.7</target>
+				</configuration>
+			</plugin>
+			
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>3.2.2</version>
+				<configuration>
+					<webappDirectory>${basedir}/WebContent</webappDirectory>
+					<!-- Make separetade jar for classes  -->
+					<attachClasses>true</attachClasses>
+					<packagingExcludes>WEB-INF/lib/*.jar</packagingExcludes>
+				</configuration>
+			</plugin>
+		</plugins>
+  </build>
+  
+  <distributionManagement>
+    <repository>
+        <id>internal</id>
+	    <url>file://${basedir}/../Monstrengo/target</url>
+    </repository>
+  </distributionManagement>  
+</project>

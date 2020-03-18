@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<entity xmlns="http://orionsoft.net.br/entityMetadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" className="br.edu.utfpr.cm.dacom.dacomdoor.entities.RoomUser" crudOperations="CREATE UPDATE RETRIEVE DELETE QUERY" propertiesInQueryGrid="id user room lastUpdate active" name="RoomUser" label="Salas X Usuários" xsi:schemaLocation="http://orionsoft.net.br/entityMetadata http://orionsoft.net.br/entityMetadata.xsd">
+    <group name="Geral" label="Geral" hint="" description="">
+        <property xsi:type="PropertyNumericType" name="id" label="Id"/>
+        <property xsi:type="PropertyEntityType" name="user" label="Usuário"/>
+        <property xsi:type="PropertyEntityType" name="room" label="Sala" readOnly="true"/>
+        <property xsi:type="PropertyCalendarType" name="lastUpdate" label="Última atualização" readOnly="false" defaultValue="now()" editMask="dd/MM/yyyy HH:mm:ss" description="Esta propriedade é utilizada para sincronização dos dados nos nós conectados"/>
+        <property xsi:type="PropertyBooleanType" name="active" label="Ativo" defaultValue="true"/>
+    </group>
+</entity>

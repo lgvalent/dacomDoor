@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='ISO-8859-1' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:p="http://primefaces.org/ui"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets">
+<ui:composition template="/public/basic/templates/mainMenu.xhtml">
+	<ui:param name="title" value="Monstrengo Framework" />
+	<ui:param name="logo" value="../../logo.png" />
+	<ui:param name="bodyPage" value="../../public/basic/tiles/emptyFrame.xhtml" />
+	<ui:define name="menu">
+		<p:submenu label="Cadastros" icon="ui-icon-contact">
+			<p:menuitem>
+				<ui:include src="/public/basic/tiles/linkCreateQueryEntity.xhtml">
+					<ui:param name="entityMetadata"
+						value="#{menuBean.infoMap.Room}" />
+				</ui:include>
+				<br />
+				<ui:include src="/public/basic/tiles/linkCreateQueryEntity.xhtml">
+					<ui:param name="entityMetadata"
+						value="#{menuBean.infoMap.User}" />
+				</ui:include>
+				<br />
+				<ui:include src="/public/basic/tiles/linkCreateQueryEntity.xhtml">
+					<ui:param name="entityMetadata"
+						value="#{menuBean.infoMap.Event}" />
+				</ui:include>
+				<br />
+				<ui:include src="/public/basic/tiles/linkCreateQueryEntity.xhtml">
+					<ui:param name="entityMetadata"
+						value="#{menuBean.infoMap.Schedule}" />
+				</ui:include>
+				<br />
+				<ui:include src="/public/basic/tiles/linkCreateQueryEntity.xhtml">
+					<ui:param name="entityMetadata"
+						value="#{menuBean.infoMap.RoomUser}" />
+				</ui:include>
+			</p:menuitem>
+			<p:menuitem value="(Todos)" icon="ui-icon-newwin" url="../basic/menu.xhtml" target="ALVO" />
+			<p:menuitem value="Últimas visualizações" url="../../pages/basic/lastEntityViews.xhtml" target="ALVO" />
+		</p:submenu>
+	</ui:define>
+</ui:composition>
+</html>

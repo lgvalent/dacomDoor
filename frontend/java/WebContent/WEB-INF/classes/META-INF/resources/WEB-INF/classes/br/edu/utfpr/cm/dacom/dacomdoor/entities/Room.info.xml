@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<entity xmlns="http://orionsoft.net.br/entityMetadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" className="br.edu.utfpr.cm.dacom.dacomdoor.entities.Room" crudOperations="CREATE UPDATE RETRIEVE DELETE QUERY" propertiesInQueryGrid="id active name lastUpdate" runQueryOnOpen="true" name="Room" colorName="blue" label="Sala" xsi:schemaLocation="http://orionsoft.net.br/entityMetadata http://orionsoft.net.br/entityMetadata.xsd">
+    <group name="Geral" label="Geral" hint="" description="">
+        <property xsi:type="PropertyNumericType" name="id" label="Id"/>
+        <property xsi:type="PropertyBooleanType" name="active" label="Ativo" defaultValue="true"/>
+        <property xsi:type="PropertyStringType" name="name" label="Nome" required="true"/>
+        <property xsi:type="PropertyCalendarType" name="lastUpdate" label="Última atualização" readOnly="true" defaultValue="now()" editMask="dd/MM/yyyy HH:mm:ss" description="Esta propriedade é utilizada para sincronização dos dados nos nós conectados"/>
+    </group>
+    <group name="Users" label="Usuários" hint="" description="Define o alunos, professores e funcionários com acesso à esta sala">
+        <property xsi:type="PropertyEntityType" name="roomUsers" label="Usuários" editShowEmbedded="true" />
+    </group>
+    <group name="Schedules" label="Horários de acesso" hint="" description="Define os horários de acesso à sala">
+        <property xsi:type="PropertyEntityType" name="schedules" label="Horários" editShowEmbedded="true" description="O acesso à sala é liberado de acordo com a configuração definida nesta propriedade"/>
+    </group>
+</entity>

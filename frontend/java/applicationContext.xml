@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE beans PUBLIC
+    "-//SPRING//DTD BEAN//EN"
+    "http://www.springframework.org/dtd/spring-beans.dtd">
+
+<beans default-autowire="no" default-lazy-init="false"
+	default-dependency-check="none">
+
+	<bean id="MetadataHandle"
+		class="br.com.orionsoft.monstrengo.crud.entity.metadata.MetadataHandleDispacher">
+
+		<property name="metadataHandleTxt">
+			<ref bean="MetadataHandleTxt" />
+		</property>
+		<property name="metadataHandleXml">
+			<ref bean="MetadataHandleXml" />
+		</property>
+	</bean>
+
+	<bean id="MetadataHandleXml"
+		class="br.com.orionsoft.monstrengo.crud.entity.metadata.xml.MetadataHandleXmlImpl">
+
+		<property name="daoManager">
+			<ref bean="DaoManager" />
+		</property>
+	</bean> 
+
+	<bean id="MetadataHandleTxt"
+		class="br.com.orionsoft.monstrengo.crud.entity.metadata.MetadataHandle">
+
+		<property name="daoManager">
+			<ref bean="DaoManager" />
+		</property>
+	</bean>
+
+	<bean id="ServiceManager" class="br.com.orionsoft.monstrengo.core.service.ServiceManager"
+	    init-method="init">
+
+		<property name="entityManager">
+			<ref bean="EntityManager" />
+		</property>
+		<property name="application">
+			<ref bean="Application" />
+		</property>
+	</bean>
+	
+	<bean id="EntityManager" class="br.com.orionsoft.monstrengo.crud.entity.EntityManager">
+
+		<property name="serviceManager">
+			<ref bean="ServiceManager" />
+		</property>
+		<property name="metadataHandle">
+			<ref bean="MetadataHandle" />
+		</property>
+		<property name="daoManager">
+			<ref bean="DaoManager" />
+		</property>
+		<property name="dvoManager">
+			<ref bean="DvoManager" />
+		</property>
+	</bean>
+
+	<bean id="DvoManager" class="br.com.orionsoft.monstrengo.crud.entity.dvo.DvoManager"
+	      init-method="init"  >
+		<property name="entityManager">
+			<ref bean="EntityManager" />
+		</property>
+		<property name="application">
+			<ref bean="Application" />
+		</property>
+	</bean>
+
+	<bean id="ProcessManager" class="br.com.orionsoft.monstrengo.core.process.ProcessManager"
+	    init-method="init">
+		<property name="serviceManager">
+			<ref bean="ServiceManager" />
+		</property>
+		<property name="application">
+			<ref bean="Application" />
+		</property>
+	</bean>
+
+	<bean id="DaoManager" class="br.com.orionsoft.monstrengo.crud.entity.dao.DaoManager"
+	    init-method="init">
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.connection.driver_class">com.mysql.jdbc.Driver</prop>
+				<prop key="hibernate.connection.url">jdbc:mysql://localhost:3306/desenvolvimento</prop>
+				<prop key="hibernate.connection.username">user</prop>
+				<prop key="hibernate.connection.password">user</prop>
+				<prop key="hibernate.connection.pool_size">100</prop>
+						
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQL5InnoDBDialect</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.bytecode.use_reflection_optimizer">true</prop>
+				<prop key="hibernate.cache.provider_class">org.hibernate.cache.HashtableCacheProvider</prop>
+			</props>
+		</property>
+		<property name="application">
+			<ref bean="Application" />
+		</property>
+	</bean>
+
+	<bean id="Application" class="br.com.orionsoft.monstrengo.core.Application">
+		<property name="modulesPackages">
+			<list>
+				<value>br.com.orionsoft.monstrengo</value>
+				<value>br.com.orionsoft.monstrengoWeb</value>
+				<value>br.edu.utfpr.cm.dacom.dacomdoor</value>
+			</list>
+		</property>
+	</bean>
+</beans>
