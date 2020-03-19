@@ -73,7 +73,7 @@
   <distributionManagement>
     <repository>
         <id>internal</id>
-	    <url>file://${basedir}/../Monstrengo/target</url>
+	    <url>file://${basedir}/target</url>
     </repository>
   </distributionManagement>  
 </project>

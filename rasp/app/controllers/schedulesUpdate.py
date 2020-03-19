@@ -42,6 +42,17 @@ class SchedulesUpdate:
 
             results = response.json()
 
+            # remove
+            for result in results["removed"]:
+                print ("Removing schedule {}.".format(result))
+                schedule = (
+                    Schedule.query
+                    .filter(Schedule.id == result["id"])
+                    .first()
+                )
+                if schedule:
+                    schedule.delete(schedule)
+
             # persiste
             for result in results["updated"]:
                 schedule = Schedule.query.get(result["id"])
@@ -65,16 +76,6 @@ class SchedulesUpdate:
                     schedule.lastUpdate = dateutil.parser.parse(result["lastUpdate"])
                     schedule.update()
 
-            # remove
-            for result in results["removed"]:
-                print ("Removing schedule {}.".format(result))
-                schedule = (
-                    Schedule.query
-                    .filter(Schedule.id == result["id"])
-                    .first()
-                )
-                if schedule:
-                    schedule.delete(schedule)
         except requests.exceptions.RequestException as e:
             print (e)
             pass
