@@ -86,7 +86,7 @@
 		<property name="hibernateProperties">
 			<props>
 				<prop key="hibernate.connection.driver_class">com.mysql.jdbc.Driver</prop>
-				<prop key="hibernate.connection.url">jdbc:mysql://localhost:3306/desenvolvimento</prop>
+				<prop key="hibernate.connection.url">jdbc:mysql://localhost:3306/dacomDoor</prop>
 				<prop key="hibernate.connection.username">user</prop>
 				<prop key="hibernate.connection.password">user</prop>
 				<prop key="hibernate.connection.pool_size">100</prop>
