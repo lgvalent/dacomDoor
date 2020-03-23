@@ -25,6 +25,10 @@ import br.com.orionsoft.monstrengo.crud.entity.dao.IDAO;
 @Entity
 @Table(name="rooms")
 public class Room {
+	public static final String NAME = "name";
+	public static final String LAST_UPDATE = "lastUpdate";
+	public static final String LAST_SYNCHRONIZATION= "lastSynchronization";
+	public static final String ACTIVE = "active";
 
 	private long id = IDAO.ENTITY_UNSAVED;
 

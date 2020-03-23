@@ -1,8 +1,1 @@
-br/edu/utfpr/cm/dacom/dacomdoor/GerarTabelas.class
-br/edu/utfpr/cm/dacom/dacomdoor/entities/UserType.class
-br/edu/utfpr/cm/dacom/dacomdoor/entities/User.class
-br/edu/utfpr/cm/dacom/dacomdoor/entities/Schedule.class
-br/edu/utfpr/cm/dacom/dacomdoor/entities/DayOfWeek.class
-br/edu/utfpr/cm/dacom/dacomdoor/entities/Event.class
 br/edu/utfpr/cm/dacom/dacomdoor/entities/EventType.class
-br/edu/utfpr/cm/dacom/dacomdoor/entities/Room.class

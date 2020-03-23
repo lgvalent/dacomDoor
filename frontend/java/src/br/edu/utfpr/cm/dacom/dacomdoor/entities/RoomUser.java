@@ -20,6 +20,11 @@ import br.com.orionsoft.monstrengo.crud.entity.dao.IDAO;
 @Entity
 @Table(name="roomsUsers")
 public class RoomUser {
+	public static final String USER = "user";
+	public static final String ROOM = "room";
+	public static final String DESCRIPTION = "description";
+	public static final String LAST_UPDATE = "lastUpdate";
+	public static final String ACTIVE = "active";
 
 	private Long id = IDAO.ENTITY_UNSAVED;
 	
@@ -60,6 +65,6 @@ public class RoomUser {
 
 	@Override
 	public String toString() {
-		return (active?"":"(Inactive)") + room==null?"NULL":room.toString();
+		return (active?"[X] ":"[_] ") + (room==null?"NULL":room.toString());
 	}
 }

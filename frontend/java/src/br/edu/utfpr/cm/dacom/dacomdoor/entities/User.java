@@ -18,7 +18,6 @@ import javax.persistence.OrderBy;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-import javax.persistence.Transient;
 
 import org.hibernate.annotations.ForeignKey;
 import org.hibernate.annotations.LazyCollection;
@@ -37,6 +36,7 @@ public class User {
 	public static final String LAST_UPDATE = "lastUpdate";
 	public static final String ACTIVE = "active";
 	
+	public static final String ROOMS_USER= "roomsUser";
 	
 	private long id = IDAO.ENTITY_UNSAVED;
 
@@ -49,7 +49,7 @@ public class User {
 	private Calendar lastUpdate;
 	private boolean active = true;
 
-	private Set<RoomUser> roomUsers = new LinkedHashSet<RoomUser>();
+	private Set<RoomUser> roomsUser = new LinkedHashSet<RoomUser>();
 	
 	@Id	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	public long getId() {return id;}
@@ -94,8 +94,8 @@ public class User {
 	@JoinColumn(name="userId")
 	@LazyCollection(LazyCollectionOption.FALSE)
 	@OrderBy("room")
-	public Set<RoomUser> getRoomUsers() {return roomUsers;}
-	public void setRoomUsers(Set<RoomUser> roomUsers) {this.roomUsers = roomUsers;}
+	public Set<RoomUser> getRoomsUser() {return roomsUser;}
+	public void setRoomsUser(Set<RoomUser> roomsUser) {this.roomsUser = roomsUser;}
 	
 	public static void main(String[] args) {
 		User u = new User();

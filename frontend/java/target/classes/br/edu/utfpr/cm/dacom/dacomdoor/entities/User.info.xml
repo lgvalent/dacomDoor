@@ -11,6 +11,6 @@
         <property xsi:type="PropertyBooleanType" name="active" label="Ativo" defaultValue="true"/>
     </group>
     <group name="Salas " label="Salas" hint="" description="Define as salas que este usuário tem acesso, respeitando os horários e tipos de usuários definidos no agendamento de cada sala.">
-        <property xsi:type="PropertyEntityType" name="roomUsers" label="Salas acessíveis" editShowEmbedded="true" allowSubQuery="true"/>
+        <property xsi:type="PropertyEntityType" name="roomsUser" label="Salas acessíveis" editShowEmbedded="true" allowSubQuery="true"/>
     </group>
 </entity>

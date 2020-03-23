@@ -32,8 +32,8 @@ public class UserDvo extends DvoBasic<User> {
 		/* Mark the register as modified to be updated by peers*/
 		oUser.setLastUpdate(Calendar.getInstance());
 		
-		for(RoomUser oRoomUser: oUser.getRoomUsers()){
-			for(RoomUser oRoomUserAux: oUser.getRoomUsers()){
+		for(RoomUser oRoomUser: oUser.getRoomsUser()){
+			for(RoomUser oRoomUserAux: oUser.getRoomsUser()){
 				if(oRoomUser.getRoom().getName().equals(oRoomUserAux.getRoom().getName()) && oRoomUser.getId() != oRoomUserAux.getId()){
 					throw new DvoException(MessageList.create(UserDvo.class, "ROOM_REPEATED", oRoomUser.getRoom().getName()));
 				}
