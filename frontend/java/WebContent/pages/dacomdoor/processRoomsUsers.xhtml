@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='ISO-8859-1' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:p="http://primefaces.org/ui"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets">
+
+
+<ui:composition template="/public/basic/templates/simpleProcess.xhtml">
+	<ui:param name="icon" value="../dacomdoor/img/processRoomsUsers.png" />
+	<ui:param name="title" value="#{menuBean.processInfoMap.RoomsUsersProcess.label}" />
+	<ui:param name="description" value="#{menuBean.processInfoMap.RoomsUsersProcess.description}" />
+	<ui:define name="content">
+	<style>
+		.top-aligned>tbody{
+		vertical-align: top;
+
+	}
+	</style>
+
+	<h:panelGrid columns="2" styleClass="top-aligned">
+		<h:panelGroup id="users">
+			<h:outputLabel value="#{menuBean.infoMap.User.label}:"/>
+			<ui:include src="/pages/dacomdoor/processParamEntityListSuggest.xhtml">
+   		    	   <ui:param name="paramEntityList" value="#{roomsUsersBean.process.paramUsers}"/>
+			</ui:include>
+			Adicionar todos: <p:commandLink value="Alunos" action="#{roomsUsersBean.doAllByUserType('STUDENT')}" update="dataTableList#{roomsUsersBean.process.paramUsers.value.info.type.simpleName}" />
+			| <p:commandLink value="Professores" action="#{roomsUsersBean.doAllByUserType('PROFESSOR')}" update="dataTableList#{roomsUsersBean.process.paramUsers.value.info.type.simpleName}" />
+			| <p:commandLink value="Técnicos" action="#{roomsUsersBean.doAllByUserType('EMPLOYEE')}" update="dataTableList#{roomsUsersBean.process.paramUsers.value.info.type.simpleName}" />
+		</h:panelGroup>	
+		<h:panelGroup id="rooms">
+			<h:outputLabel value="#{menuBean.infoMap.Room.label}:" />
+			<ui:include src="/public/basic/tiles/processParamEntityListSuggest.xhtml">
+  		    	   <ui:param name="paramEntityList" value="#{roomsUsersBean.process.paramRooms}"/>
+			</ui:include>
+		</h:panelGroup>
+	</h:panelGrid>
+	<hr/>
+	<h:panelGrid columns="2">
+		<h:outputLabel value="Data de definição:"/>
+			<h:panelGroup>
+				<ui:include src="/public/basic/tiles/calendar.xhtml">
+    			    <ui:param name="timeField" value="#{roomsUsersBean.process.date.time}"/>
+				</ui:include>
+			</h:panelGroup>
+		<h:outputLabel value="Motivos do acesso:"/>
+		<p:inputTextarea id="description" title="Descreva o motivo pelo qual o usuário acessará o laboratório. Indique em autorizou o acesso ou o projeto que justifica o acesso." value="#{roomsUsersBean.process.description}" rows="3" required="false"/>
+	</h:panelGrid>
+	
+	</ui:define>
+	<ui:define name="actions">
+			<p:commandButton ajax="false" value="Cancelar" onclick="javascript:if(confirm('Confirma abandonar as alterações?'))window.close();"/>
+			<p:commandButton ajax="false" value="Garantir acesso" action="#{roomsUsersBean.doGrant}"/>
+			<p:commandButton ajax="false" value="Revogar acesso" action="#{roomsUsersBean.doRevoke}"/>
+	</ui:define>
+</ui:composition>
+</html>
