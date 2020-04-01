@@ -2,7 +2,8 @@ package br.edu.utfpr.cm.dacom.dacomdoor.entities;
 
 public enum EventType {
 	IN(1, "get in"),
-    OUT(2, "get out");
+	OUT(2, "get out"),
+	DOOR_OPENED(3, "door opened");
 
 	public static final int COLUMN_DISCRIMINATOR_LENGTH = 3;
 
