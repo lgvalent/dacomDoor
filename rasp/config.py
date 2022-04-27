@@ -1,8 +1,12 @@
-URL_SERVER = "http://dacom.cm.utfpr.edu.br:19500"
+# WAN Access
+#URL_SERVER = "http://dacom.cm.utfpr.edu.br:19500"
+# LAN Access
+URL_SERVER = "http://dacomdoor.dacom:5000"
 ROOM_NAME = "CAFE"
 ROOM_LAST_UPDATE_FAKE = "2001-01-01 00:00:00"
 UPDATE_DELAY = 60
 BOARD_VERSION = 6
+# if >1 define magnetic lock else electric lock
 RELAY_DELAY = .1
 DOOR_OPENED_ALERT_DELAY = 30
 
