@@ -14,7 +14,7 @@ import br.edu.utfpr.cm.dacom.dacomdoor.entities.RoomUser;
 import br.edu.utfpr.cm.dacom.dacomdoor.entities.User;
 
 /**
- * Serviço que garante ou revoga acesso dos usuários às salas
+ * Serviï¿½o que garante ou revoga acesso dos usuï¿½rios ï¿½s salas
  * 
  * <p>
  * <b>Argumento:</b><br>
@@ -29,7 +29,7 @@ public class RoomsUsersService extends ServiceBasic {
 	public static final String SERVICE_NAME = "RoomsUsersService";
 
 	/*
-	 * Parâmetros de entrada do serviço.
+	 * Parï¿½metros de entrada do serviï¿½o.
 	 */
 	public static final String IN_ROOMS = "rooms";
 	public static final String IN_USERS = "users";
@@ -103,13 +103,11 @@ public class RoomsUsersService extends ServiceBasic {
 								oUser.getRoomsUser().add(roomUser_);
 
 								this.addInfoMessage(serviceData, "GRANT", user.toString(), room.toString());
+								
+								UtilsCrud.objectUpdate(getServiceManager(), roomUser_, serviceData);
 							}
 
-							UtilsCrud.update(getServiceManager(), user, serviceData);
-
 						}
-
-
 
 			//			serviceData.getMessageList().add();
 
