@@ -22,7 +22,7 @@
 	<h:panelGrid columns="2" styleClass="top-aligned">
 		<h:panelGroup id="users">
 			<h:outputLabel value="#{menuBean.infoMap.User.label}:"/>
-			<ui:include src="/pages/dacomdoor/processParamEntityListSuggest.xhtml">
+			<ui:include src="/public/basic/tiles/processParamEntityListSuggest.xhtml">
    		    	   <ui:param name="paramEntityList" value="#{roomsUsersBean.process.paramUsers}"/>
 			</ui:include>
 			Adicionar todos: <p:commandLink value="Alunos" action="#{roomsUsersBean.doAllByUserType('STUDENT')}" update="dataTableList#{roomsUsersBean.process.paramUsers.value.info.type.simpleName}" />

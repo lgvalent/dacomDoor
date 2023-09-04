@@ -37,8 +37,13 @@
 						value="#{menuBean.infoMap.RoomUser}" />
 				</ui:include>
 			</p:menuitem>
+			<p:menuitem>
+				<ui:include src="/public/basic/tiles/linkRunProcess.xhtml">
+           			<ui:param name="process" value="#{menuBean.processInfoMap.RoomsUsersProcess}"/>
+				</ui:include>
+			</p:menuitem>
 			<p:menuitem value="(Todos)" icon="ui-icon-newwin" url="../basic/menu.xhtml" target="ALVO" />
-			<p:menuitem value="ï¿½ltimas visualizaï¿½ï¿½es" url="../../pages/basic/lastEntityViews.xhtml" target="ALVO" />
+			<p:menuitem value="Últimas visualizações" url="../../pages/basic/lastEntityViews.xhtml" target="ALVO" />
 		</p:submenu>
 	</ui:define>
 </ui:composition>
