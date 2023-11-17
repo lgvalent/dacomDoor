@@ -6,6 +6,7 @@
 #include "utils.cpp"
 #include "board-models.cpp"
 #include "doorlock.cpp"
+#include <ctime>
 
 class AppBoard
 {
@@ -106,9 +107,7 @@ public:
     }
     else if (this->lastUid != NULL)
     {
-      time_t t = now();
-      time_t diff = t - this->lastDoorOpenTime; // seconds
-      if (diff > DOOR_OPENED_ALERT_DELAY)
+      if (difftime(time(NULL), this->lastDoorOpenTime) > DOOR_OPENED_ALERT_DELAY)
       {
         this->board->beepOk();
         this->board->blinkActivityLed();
@@ -229,7 +228,7 @@ public:
         this->uidReader.uid.size);
 
     this->lastUid = &uid;
-    this->lastUidTime = now();
+    this->lastUidTime = time(NULL);
 
     Serial.print("[LOG]: UID: ");
     Serial.println(uid);

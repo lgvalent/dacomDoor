@@ -20,6 +20,10 @@ public:
   virtual String getById() = 0;
 };
 
+enum EventType:char{IN, OUT, DOOR_OPENED};
+const char* eventTypeNames_[] = {"IN", "OUT", "DOOR_OPENED"};
+const char* eventTypeDatas_[] = {"get in", "get out", "door opened"};
+
 class EventsModel : public ModelBase
 {
 private:

@@ -1,6 +1,7 @@
 #include "commons.cpp"
 #include "app-tasks.cpp"
 #include "app-board.cpp"
+#include <thread>
 
 time_t lastCommandButtonTime = 0;
 time_t lastDoorSensorTime = 0;
@@ -14,7 +15,7 @@ AppBoard *appBoard;
 
 void doorSensorCallback()
 {
-  time_t t = now();
+  time_t t = time(NULL);
   if (t - lastDoorSensorTime > 1)
   {
     lastDoorSensorTime = t;
@@ -24,7 +25,7 @@ void doorSensorCallback()
 
 void commandButtonCallback()
 {
-  time_t t = now();
+  time_t t = time(NULL);
   if (t - lastCommandButtonTime > 1)
   {
     if (boardModel->isLightOn() || boardModel->isLocked())
@@ -50,8 +51,18 @@ void setup()
 
 }
 
+void boardThread(){
+  appBoard->run();
+}
+
+void tasksThread(){
+  appTasks.run();
+}
+
 void loop()
 {
-  appBoard->run();
-  appTasks->run();
+  std::thread thread_board(boardThread);
+  std::thread thread_tasks(tasksThread);
+  thread_board.join();
+  thread_tasks.join();
 }

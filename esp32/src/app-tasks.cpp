@@ -443,7 +443,7 @@ protected:
 public:
   boolean hasNetwork() { return WiFi.isConnected(); }
 
-  AppTasks(SqliteDB *db) : db(db) { this->lastUpdate = now(); }
+  AppTasks(SqliteDB *db) : db(db) { this->lastUpdate = time(NULL); }
 
   void startup()
   {
@@ -454,7 +454,7 @@ public:
   void run()
   {
     // time_t represents the number of seconds from 1970 until now.
-    time_t t = now();
+    time_t t = time(NULL);
     time_t diff = t - this->lastUpdate;
     if (diff > UPDATE_DELAY)
     {
