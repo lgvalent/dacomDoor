@@ -14,7 +14,7 @@ AppBoard *appBoard;
 
 void doorSensorCallback()
 {
-  time_t t = now();
+  time_t t = Utils::now();
   if (t - lastDoorSensorTime > 1)
   {
     lastDoorSensorTime = t;
@@ -24,7 +24,7 @@ void doorSensorCallback()
 
 void commandButtonCallback()
 {
-  time_t t = now();
+  time_t t = Utils::now();
   if (t - lastCommandButtonTime > 1)
   {
     if (boardModel->isLightOn() || boardModel->isLocked())
@@ -53,5 +53,5 @@ void setup()
 void loop()
 {
   appBoard->run();
-  appTasks->run();
+  appTasks.run();
 }

@@ -10,11 +10,11 @@
 class Doorlock
 {
 private:
-  String *lastUserType = NULL;
+  UserType lastUserType;
   SqliteDB *db;
 
 public:
-  String *getLastUserType() { return this->lastUserType; }
+  UserType getLastUserType() { return this->lastUserType; }
 
   Doorlock(SqliteDB *db) : db(db) {}
 
@@ -39,14 +39,14 @@ public:
     return command;
   }
 
-  void saveEvent(String uid, String eventType, String time)
+  void saveEvent(String uid, EventType eventType, time_t time)
   {
     EventsModel eventsModel;
 
     eventsModel.build(
         uid.c_str(),
         time,
-        eventType.c_str());
+        eventType);
 
     this->db->exec_(eventsModel.add().c_str());
   }
@@ -71,11 +71,11 @@ public:
     return this->db->hasResult();
   }
 
-  bool checkAccessType(String userType)
+  bool checkAccessType(UserType userType)
   {
     Serial.println(F("[LOG]: Check if user type is allowed on current schedule."));
 
-    bool isNotStudent = !userType.equals(UserTypeEnum::STUDENT);
+    bool isNotStudent = userType != UserType::STUDENT;
 
     if (isNotStudent)
     {
@@ -83,7 +83,7 @@ public:
     }
     else if (this->hasSchedules())
     {
-      this->db->exec_(this->SELECT_CURRENT_SCHEDULE_BY_USER_TYPE(userType).c_str());
+      this->db->exec_(this->SELECT_CURRENT_SCHEDULE_BY_USER_TYPE(userTypeNames[userType]).c_str());
       bool userInSchedule = this->db->hasResult();
 
       return userInSchedule;
@@ -101,8 +101,8 @@ public:
 
     if (userExistInKeyring)
     {
-      String userType = first_row.getCol("userType");
-      lastUserType = &userType;
+      UserType userType = Utils::findEnumByValue<UserType>(userTypeNames, first_row.getCol("userType"));
+      lastUserType = userType;
 
       return this->checkAccessType(userType);
     }

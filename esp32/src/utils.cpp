@@ -1,27 +1,32 @@
 #ifndef APP_UTILS
 #define APP_UTILS
 #include "commons.cpp"
+#include <unordered_map>
 
 class Utils
 {
 public:
-  static String weekDay(int day)
+  static time_t now(){
+    return time(NULL);
+  }
+
+  static String weekDay(uint8_t day)
   {
     switch (day)
     {
-    case 1:
+    case 0:
       return "SUNDAY";
-    case 2:
+    case 1:
       return "MONDAY";
+    case 2:
+      return "TUESDAY";
     case 3:
-      return "THUESDAY"; // Fix typo?
-    case 4:
       return "WEDNESDAY";
-    case 5:
+    case 4:
       return "THURSDAY";
-    case 6:
+    case 5:
       return "FRIDAY";
-    case 7:
+    case 6:
       return "SATURDAY";
     }
     return "SUNDAY";
@@ -67,47 +72,57 @@ public:
 
   static String padZero(int x) { return x > 9 ? String(x) : "0" + String(x); }
 
-  static String currentDatetime()
+  static String datetimeToString(time_t time)
   {
-    time_t t = now();
-    int h = hour(t);
-    int m = minute(t);
-    int s = second(t);
-    int d = day(t);
-    int mo = month(t);
-    int y = year(t);
+    struct tm *ti = localtime(&time);  
+    String dStr = Utils::padZero(ti->tm_mday);
+    String moStr = Utils::padZero(ti->tm_mon);
+    String hStr = Utils::padZero(ti->tm_hour);
+    String mStr = Utils::padZero(ti->tm_min);
+    String sStr = Utils::padZero(ti->tm_sec);
 
-    String dStr = Utils::padZero(d);
-    String moStr = Utils::padZero(mo);
-    String hStr = Utils::padZero(h);
-    String mStr = Utils::padZero(m);
-    String sStr = Utils::padZero(s);
-
-    String dateAndHour = String(y) + "-" + moStr + "-" + dStr + "T" + hStr + ":" +
+    String dateAndHour = String(ti->tm_year) + "-" + moStr + "-" + dStr + "T" + hStr + ":" +
                          mStr + ":" + sStr;
 
     return dateAndHour;
   }
 
+  static String currentDatetime()
+  {
+    return datetimeToString(Utils::now());
+  }
+
+  static String timeToString(time_t time)
+  {
+    struct tm *ti = localtime(&time);  
+
+    String hStr = Utils::padZero(ti->tm_hour);
+    String mStr = Utils::padZero(ti->tm_min);
+    String sStr = Utils::padZero(ti->tm_sec);
+
+    return hStr + ":" + mStr + ":" + sStr;
+  }
+
   static String currentHour()
   {
-    time_t t = now();
-    int h = hour(t);
-    int m = minute(t);
-    int s = second(t);
-
-    String hStr = Utils::padZero(h);
-    String mStr = Utils::padZero(m);
-    String sStr = Utils::padZero(s);
-
-    String hour = hStr + ":" + mStr + ":" + sStr;
-
-    return hour;
+    return timeToString(Utils::now());
   }
 
   static String currentWeekDay()
   {
-    return Utils::weekDay(weekday(now()));
+    time_t time = Utils::now();
+    struct tm *ti = localtime(&time);  
+    return Utils::weekDay(ti->tm_wday);
+  }
+
+  template <typename T>  static T findEnumByValue(std::unordered_map<T, String>& enumMap, const String& value) {
+    for (const auto& pair : enumMap) {
+        if (pair.second == value) {
+            return pair.first;
+        }
+    }
+    //TODO Show in log this exception
+    throw std::exception();
   }
 };
 

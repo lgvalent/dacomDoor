@@ -11,13 +11,13 @@ class AppBoard
 {
 private:
   int blinkActivityLedCount = 0;
-  const uint32_t BLINK_DELAY = 1000;
+  static const uint32_t BLINK_DELAY = 1000;
 
   BoardModel *board;
   Doorlock *doorlock;
 
   String *lastUid = NULL;
-  time_t lastUidTime = 0;
+  time_t lastUidTime = Utils::now();
   bool hasDoorOpenEvent;
 
   MFRC522 uidReader;
@@ -64,11 +64,10 @@ public:
 
     if (RELAY_DELAY > 1 || isLocked)
     {
-      String eventType = isLocked ? EventTypesEnum::OUT : EventTypesEnum::IN;
       this->doorlock->saveEvent(
           uid,
-          eventType,
-          Utils::currentDatetime());
+          isLocked?EventType::OUT:EventType::IN,
+          Utils::now());
     }
 
     for (int i = 0; i < 3; i++)
@@ -106,7 +105,7 @@ public:
     }
     else if (this->lastUid != NULL)
     {
-      time_t t = now();
+      time_t t = time(NULL);
       time_t diff = t - this->lastDoorOpenTime; // seconds
       if (diff > DOOR_OPENED_ALERT_DELAY)
       {
@@ -118,9 +117,8 @@ public:
           this->hasDoorOpenEvent = true;
           this->doorlock->saveEvent(
             *this->lastUid,
-            EventTypesEnum::DOOR_OPENED,
-            Utils::currentDatetime()
-          );
+            EventType::OPENED,
+            Utils::now());
         }
       }
     }
@@ -189,22 +187,17 @@ public:
 
     if (hasAccess)
     {
-      String *userType = this->doorlock->getLastUserType();
-      if (userType != NULL)
-      {
-        if (userType->equals(UserTypeEnum::PROFESSOR))
-        {
-          // Keep door opened when a professor open it
-          this->toggleDoor(uid);
-        }
-        else if (userType->equals(UserTypeEnum::EMPLOYEE))
-        {
+      UserType userType = this->doorlock->getLastUserType();
+      switch(userType){
+        // Keep door opened when a professor open it
+        case UserType::PROFESSOR: this->toggleDoor(uid); break;
+        case UserType::EMPLOYEE: 
           // Allow employ closes an opened door
           if (this->board->isLocked())
             this->openDoor(uid);
           else
             this->toggleDoor(uid);
-        }
+          break;
       }
     }
     else
@@ -229,7 +222,7 @@ public:
         this->uidReader.uid.size);
 
     this->lastUid = &uid;
-    this->lastUidTime = now();
+    this->lastUidTime = time(NULL);
 
     Serial.print("[LOG]: UID: ");
     Serial.println(uid);

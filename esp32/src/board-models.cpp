@@ -1,5 +1,5 @@
-#ifndef APP_BOARD_MODELS
-#define APP_BOARD_MODELS
+#ifndef BOARD_MODELS
+#define BOARD_MODELS
 #include "commons.cpp"
 
 class GPIO
@@ -25,22 +25,23 @@ private:
   bool locked = true;
 
 public:
-  const int lockRelayPin;
-  const int activityLedPin;
-  const int pushButtonProgramPin;
-  const int pushButtonCommandPin;
-  const int speakerPin;
-  const int doorSensorPin;
-  const int lightSensorPin;
+  static const uint8_t DISABLED_PIN = 0; 
+  const uint8_t lockRelayPin;
+  const uint8_t activityLedPin;
+  const uint8_t pushButtonProgramPin;
+  const uint8_t pushButtonCommandPin;
+  const uint8_t speakerPin;
+  const uint8_t doorSensorPin;
+  const uint8_t lightSensorPin;
 
   BoardModel(
-      int lockRelayPin,
-      int activityLedPin,
-      int pushButtonProgramPin,
-      int pushButtonCommandPin,
-      int speakerPin,
-      int doorSensorPin,
-      int lightSensorPin) : lockRelayPin(lockRelayPin),
+      uint8_t lockRelayPin,
+      uint8_t activityLedPin,
+      uint8_t pushButtonProgramPin,
+      uint8_t pushButtonCommandPin,
+      uint8_t speakerPin,
+      uint8_t doorSensorPin,
+      uint8_t lightSensorPin) : lockRelayPin(lockRelayPin),
                             activityLedPin(activityLedPin),
                             pushButtonProgramPin(pushButtonProgramPin),
                             pushButtonCommandPin(pushButtonCommandPin),
@@ -57,9 +58,9 @@ public:
     GPIO::turnOff(this->activityLedPin);
     if (this->activityLedPin == 2)
     {
-      int channel = 1;
-      int frequency = 1000;
-      int resolution = 10;
+      uint8_t channel = 1;
+      uint32_t frequency = 1000;
+      uint8_t resolution = 10;
       ledcAttachPin(this->activityLedPin, channel);
       ledcSetup(channel, frequency, resolution);
     }
@@ -70,16 +71,16 @@ public:
     if (this->speakerPin)
       GPIO::setup(this->speakerPin, OUTPUT);
 
-    if (this->doorSensorPin > 0)
+    if (this->doorSensorPin)
       GPIO::setup(this->doorSensorPin, INPUT_PULLUP);
 
-    if (this->lightSensorPin > 0)
+    if (this->lightSensorPin)
       GPIO::setup(this->lightSensorPin, INPUT_PULLUP);
   }
 
   void setCommandButtonCallback(void (*cb)())
   {
-    int pin = this->pushButtonCommandPin;
+    uint8_t pin = this->pushButtonCommandPin;
     if (pin > 0) 
     {
       detachInterrupt(pin);
@@ -89,7 +90,7 @@ public:
 
   void serDoorSensorCallback(void (*cb)())
   {
-    int pin = this->doorSensorPin;
+    uint8_t pin = this->doorSensorPin;
     if (pin > 0) 
     {
       detachInterrupt(pin);
@@ -99,8 +100,8 @@ public:
 
   void beep(double frequency, uint32_t delay_time)
   {
-    int channel = this->speakerPin;
-    int resolution = 8;
+    uint8_t channel = this->speakerPin;
+    uint8_t resolution = 8;
     if (channel > 0)
     {
       ledcSetup(channel, frequency, resolution);
@@ -143,7 +144,7 @@ public:
   {
     if (this->activityLedPin == 2)
     {
-      int channel = 1;
+      uint8_t channel = 1;
       ledcWrite(channel, 1000);
       delay(100);
       ledcWrite(channel, 0);
@@ -167,20 +168,19 @@ public:
   bool isProgramButtonPushed() { return !GPIO::input(this->pushButtonProgramPin); }
 };
 
-static BoardModel *getBoardModel(int version)
+static BoardModel *getBoardModel(byte version)
 {
-  int disabled = -1;
-  int internalActivityLedPin = 2;
-  int fakeButtonPin = 23;
-  BoardModel *boardModel = new BoardModel(
-      10,                     // OUTPUT         lockRelayPin
-      internalActivityLedPin, // OUTPUT         activityLedPin
-      fakeButtonPin,          // INPUT_PULLUP   pushButtonProgramPin
-      25,                     // INPUT_PULLUP   pushButtonCommandPin
-      disabled,               // OUTPUT       ? speakerPin
-      disabled,               // INPUT_PULLUP ? doorSensorPin
-      disabled                // INPUT_PULLUP ? lightSensorPin
-  );
+    BoardModel* boardModel;
+    switch(version){
+      case 1 : boardModel = new BoardModel(23,24,25,17, 0, 0, 0);break;
+      case 2 : boardModel = new BoardModel(23,24,25,17, 0, 0, 0);break;
+      case 3 : boardModel = new BoardModel(23,25,16,12, 0, 0, 0);break;
+      case 4 : boardModel = new BoardModel(23,24,16,25,12, 0, 0);break;
+      case 5 : boardModel = new BoardModel(24,23,12,25,18,16, 0);break;
+      case 6 : boardModel = new BoardModel(21,16,18,23,12,25,24);break;
+      default: throw "Version not suportted yet!";
+    }
+
   boardModel->startup();
   return boardModel;
 }

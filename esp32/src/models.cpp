@@ -1,6 +1,9 @@
 #ifndef APP_MODELS
 #define APP_MODELS
-#include "commons.cpp"
+
+#include <string>
+#include <unordered_map>
+#include "utils.cpp"
 
 class ModelBase
 {
@@ -20,12 +23,25 @@ public:
   virtual String getById() = 0;
 };
 
+enum class EventType: char{IN, OUT, OPENED};
+
+static std::unordered_map<EventType, String> eventTypeNames = { 
+  {EventType::IN, "IN"},
+  {EventType::OUT, "OUT"},
+  {EventType::OPENED, "OPENED"}}; 
+
+enum class UserType: char{STUDENT, PROFESSOR, EMPLOYEE};
+static std::unordered_map<UserType, String> userTypeNames = { 
+  {UserType::STUDENT, "STUDENT"},
+  {UserType::PROFESSOR, "PROFESSOR"},
+  {UserType::EMPLOYEE, "EMPLOYEE"}}; 
+
 class EventsModel : public ModelBase
 {
 private:
   char uid[17];
-  String time;       // datatime
-  char eventType[5]; // "IN" | "OUT"
+  time_t time;
+  EventType eventType;
 public:
   static String JSON_TEMPLATE() { return "{\"uid\":\"$1\",\"time\":\"$2\",\"eventType\":\"$3\"}"; }
   static String INSERT_TEMPLATE() { return "INSERT INTO events VALUES ('$1', '$2', '$3');"; }
@@ -40,7 +56,7 @@ public:
 
   EventsModel() { this->completed = 1 | 2 | 4; }
 
-  void build(const char *uid, String time, const char *eventType)
+  void build(const char *uid, time_t time, EventType eventType)
   {
     this->setUid(uid);
     this->setTime(time);
@@ -55,36 +71,34 @@ public:
       this->uid[i] = uid[i];
     this->uid[i] = 0;
   }
-  void setTime(String time)
+  void setTime(time_t time)
   {
     this->consumed |= 2;
     this->time = time;
   }
-  void setEventType(const char *eventType)
+  void setEventType(EventType eventType)
   {
     this->consumed |= 4;
-    int i;
-    for (i = 0; i < 4 && eventType[i]; i++)
-      this->eventType[i] = eventType[i];
-    this->eventType[i] = 0;
+    this->eventType = eventType;
   }
 
-  static String toJSON(char *uid, String time, char *eventType)
+  static String toJSON(char *uid, time_t time, EventType eventType)
   {
     String json = EventsModel::JSON_TEMPLATE();
-    json.replace("$2", String(uid));
-    json.replace("$3", time);
-    json.replace("$4", String(eventType));
+    json.replace("$1", String(uid));
+    json.replace("$2", Utils::datetimeToString(time));
+    json.replace("$3", eventTypeNames[eventType]);
     return json;
   }
+
   String toJSON() { return EventsModel::toJSON(this->uid, this->time, this->eventType); }
 
   String add()
   {
     String command = EventsModel::INSERT_TEMPLATE();
     command.replace("$1", String(this->uid));
-    command.replace("$2", this->time);
-    command.replace("$3", String(this->eventType));
+    command.replace("$2", Utils::datetimeToString(this->time));
+    command.replace("$3", eventTypeNames[this->eventType]);
     return command;
   }
   String remove()
@@ -97,8 +111,8 @@ public:
   {
     String command = EventsModel::UPDATE_TEMPLATE();
     command.replace("$1", String(this->uid));
-    command.replace("$2", this->time);
-    command.replace("$3", String(this->eventType));
+    command.replace("$2", Utils::datetimeToString(this->time));
+    command.replace("$3", eventTypeNames[this->eventType]);
     return command;
   }
   String getById()
@@ -327,20 +341,6 @@ public:
     command.replace("$1", String(this->id));
     return command;
   }
-};
-
-namespace UserTypeEnum
-{
-  static String STUDENT = "Student";
-  static String PROFESSOR = "Professor";
-  static String EMPLOYEE = "Employee";
-};
-
-namespace EventTypesEnum
-{
-  static String IN = "get in";
-  static String OUT = "get out";
-  static String DOOR_OPENED = "door opened";
 };
 
 #endif
