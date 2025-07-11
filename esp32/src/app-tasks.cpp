@@ -7,7 +7,8 @@
 #include <ArduinoJson.h>
 
 #include "config.cpp"
-#include "commons-db.cpp"
+#include "models.cpp"
+#include "daosqlite3.cpp"
 
 #define FORMAT_SPIFFS_IF_FAILED true
 
@@ -38,9 +39,12 @@ static boolean is_valid_json(JsonObject doc, Vector<String> keys)
 class AppTasks
 {
 protected:
-  SqliteDB *db;
+  KeyringDao keyringDao;
+  EventDao eventDao;
+  ScheduleDao scheduleDao;
+
   time_t lastUpdate;
-  int state = 0; // [0-3]: ["Keyrings", "Schedule", "Events"]
+  int state = 0; // [0-3]: ["Keyring", "Schedule", "Events"]
 
   int networkGuard()
   {
@@ -56,7 +60,7 @@ protected:
   {
     HTTPClient http;
 
-    http.begin(URL_SERVER + "/doorlock/" + ROOM_NAME + "/events");
+    http.begin(config.serverURL + "/doorlock/" + config.roomName + "/events");
     http.addHeader("Content-Type", "application/json");
 
     int code = http.POST(vector_to_string(result));
@@ -74,11 +78,11 @@ protected:
 
     return code;
   }
-  int sendUpdateScheduleRequest(String &lastUpdate)
+  int sendUpdateScheduleRequest(time_t lastUpdate)
   {
     HTTPClient http;
 
-    http.begin(URL_SERVER + "/doorlock/" + ROOM_NAME + "/schedules?lastUpdate=\"" + lastUpdate + "\"");
+    http.begin(config.serverURL + "/doorlock/" + config.roomName + "/schedules?lastUpdate=\"" + Utils::datetimeToString(lastUpdate) + "\"");
     http.addHeader("Content-Type", "application/json");
 
     int code = http.GET();
@@ -101,11 +105,11 @@ protected:
     http.end();
     return code;
   }
-  int sendUpdateKeyringsRequest(String &lastUpdate)
+  int sendUpdateKeyringsRequest(time_t lastUpdate)
   {
     HTTPClient http;
 
-    http.begin(URL_SERVER + "/doorlock/" + ROOM_NAME + "/keyrings?lastUpdate=\"" + lastUpdate + "\"");
+    http.begin(config.serverURL + "/doorlock/" + config.roomName + "/keyring?lastUpdate=\"" + Utils::datetimeToString(lastUpdate) + "\"");
     http.addHeader("Content-Type", "application/json");
 
     int code = http.GET();
@@ -143,23 +147,20 @@ protected:
     }
     else if (doc.containsKey("removed") && doc.containsKey("updated"))
     {
-      KeyringsModel keyringsModel;
-
+      
       Vector<String> removedKeys;
       removedKeys.push_back("userId");
-
+      
       for (JsonObject x : doc["removed"].as<JsonArray>())
       {
         if (is_valid_json(x, removedKeys))
         {
-          long userId = x["userId"];
-          keyringsModel.setUserId(userId);
+          Uid userId = x["userId"];
+          Keyring keyring = keyringDao.findByUid(userId);
 
-          this->db->getById(keyringsModel);
-
-          if (this->db->hasResult())
+          if (keyring.isValid())
           {
-            this->db->remove(keyringsModel);
+            keyringDao.remove(userId);
             Serial.print("[LOG]: keyring removed: ");
             Serial.println(userId);
           }
@@ -171,7 +172,7 @@ protected:
         }
         else
         {
-          Serial.println("[WARN]: An invalid removed result was found!");
+          Serial.println("[WARN]: An invalid removed entry was found!");
         }
       }
 
@@ -185,23 +186,26 @@ protected:
       {
         if (is_valid_json(x, updatedKeys))
         {
-          long userId = x["userId"];
-          const char *uid = x["uid"];
-          const char *userType = x["userType"];     // "STUDENT" | "PROFESSOR" | "EMPLOYEE"
+          Uid userId = x["userId"];
+          Uid uid = x["uid"];
+          const char *userTypeName = x["userType"];     // "STUDENT" | "PROFESSOR" | "EMPLOYEE"
           const char *lastUpdate = x["lastUpdate"]; // datatime
-          keyringsModel.build(uid, userId, userType, String(lastUpdate));
+          
+          UserType userType = Utils::findEnumByValue(userTypeNames, userTypeName);
 
-          this->db->getById(keyringsModel);
-
-          if (this->db->hasResult())
+          Keyring keyring = keyringDao.findByUserId(userId);
+          
+          if (keyring.isValid())
           {
-            this->db->update(keyringsModel);
+            keyring.build(uid, userId, userType, Utils::stringToDatetime(lastUpdate));
+            keyringDao.update(keyring);
             Serial.print("[LOG]: keyring updated: ");
             Serial.println(userId);
           }
           else
           {
-            this->db->add(keyringsModel);
+            keyring.build(uid, userId, userType, Utils::stringToDatetime(lastUpdate));
+            keyringDao.save(keyring);
             Serial.print("[LOG]: keyring added: ");
             Serial.println(userId);
           }
@@ -232,23 +236,20 @@ protected:
     }
     else if (doc.containsKey("removed") && doc.containsKey("updated"))
     {
-      SchedulesModel schedulesModel;
-
+      
       Vector<String> removedKeys;
       removedKeys.push_back("id");
-
+      
       for (JsonObject x : doc["removed"].as<JsonArray>())
       {
         if (is_valid_json(x, removedKeys))
         {
-          long id = x["id"];
-          schedulesModel.setId(id);
+          Uid id = x["id"];
+          Schedule schedule = scheduleDao.findById(id);
 
-          this->db->getById(schedulesModel);
-
-          if (this->db->hasResult())
+          if (schedule.isValid())
           {
-            this->db->remove(schedulesModel);
+            scheduleDao.remove(id);
             Serial.print("[LOG]: schedule removed: ");
             Serial.println(id);
           }
@@ -260,7 +261,7 @@ protected:
         }
         else
         {
-          Serial.println("[WARN]: An invalid removed result was found!");
+          Serial.println("[WARN]: An invalid removed entry was found!");
         }
       }
 
@@ -276,25 +277,26 @@ protected:
       {
         if (is_valid_json(x, updatedKeys))
         {
-          long id = x["id"];
+          Uid id = x["id"];
           const char *dayOfWeek = x["dayOfWeek"];
           const char *beginTime = x["beginTime"];   // time
           const char *endTime = x["endTime"];       // time
           const char *userType = x["userType"];     // "STUDENT" | "PROFESSOR" | "EMPLOYEE"
           const char *lastUpdate = x["lastUpdate"]; // datatime
-          schedulesModel.build(id, dayOfWeek, beginTime, String(endTime), userType, String(lastUpdate));
-
-          this->db->getById(schedulesModel);
-
-          if (this->db->hasResult())
+          
+          Schedule schedule = scheduleDao.findById(id);
+          
+          if (schedule.isValid())
           {
-            this->db->exec(schedulesModel.update().c_str());
+            schedule.build(id, Utils::findEnumByValue(dayOfWeekNames, String(dayOfWeek)), Utils::stringToDatetime(beginTime), Utils::stringToDatetime(endTime), Utils::findEnumByValue(userTypeNames, String(userType)), Utils::stringToDatetime(lastUpdate));
+            scheduleDao.update(schedule);
             Serial.print("[LOG]: schedule updated: ");
             Serial.println(id);
           }
           else
           {
-            this->db->update(schedulesModel);
+            schedule.build(id, Utils::findEnumByValue(dayOfWeekNames, String(dayOfWeek)), Utils::stringToDatetime(beginTime), Utils::stringToDatetime(endTime), Utils::findEnumByValue(userTypeNames, String(userType)), Utils::stringToDatetime(lastUpdate));
+            scheduleDao.save(schedule);
             Serial.print("[LOG]: schedule added: ");
             Serial.println(id);
           }
@@ -316,113 +318,48 @@ protected:
     if (this->networkGuard())
       return;
 
-    this->db->initSession();
-    Vector<String> result;
+    Vector<String> rs;
 
-    this->db->execWithContext(
-        "SELECT id, uid, time, eventType FROM events;", &result,
-        [](void *ctx, int n, char **data, char **cols) {
-          db_query_returned = true;
-          Vector<String> *rs = (Vector<String> *)ctx;
-          String json = EventsModel::JSON_TEMPLATE();
-          json.replace("$1", String(data[0])); // id
-          json.replace("$2", String(data[1])); // uid
-          json.replace("$3", String(data[2])); // time
-          json.replace("$4", String(data[3])); // eventType
-          rs->push_back(json);
-          return 0;
+    eventDao.process(
+        [&rs](const Event &event) {
+          rs.push_back(event.toJSON_());
+          return true;
         });
 
-    if (this->db->hasResult())
+    if (rs.size())
     {
-      int code = this->sendUpdateEventsRequest(result);
+      int code = this->sendUpdateEventsRequest(rs);
 
       if (code == 200)
-        this->db->exec("DELETE FROM events;");
+        eventDao.removeAll();
     }
-
-    this->db->closeSession();
   }
   void updateSchedules()
   {
     if (this->networkGuard())
       return;
 
-    this->db->initSession();
-    this->db->exec1("SELECT lastUpdate\nFROM schedules\nORDER BY lastUpdate DESC\nLIMIT 1;");
-
-    String lastUpdate = ROOM_LAST_UPDATE_FAKE;
-
-    if (this->db->hasResult())
-      lastUpdate = first_row.getCol("lastUpdate");
+    time_t lastUpdate = scheduleDao.getLastUpdate();
 
     this->sendUpdateScheduleRequest(lastUpdate);
-
-    this->db->closeSession();
   }
   void updateKeyrings()
   {
     if (this->networkGuard())
       return;
-    this->db->initSession();
 
-    this->db->exec1("SELECT lastUpdate\nFROM keyrings\nORDER BY lastUpdate DESC\nLIMIT 1;");
-
-    String lastUpdate = ROOM_LAST_UPDATE_FAKE;
-
-    if (this->db->hasResult())
-      lastUpdate = first_row.getCol("lastUpdate");
+    time_t lastUpdate = keyringDao.getLastUpdate();
 
     this->sendUpdateKeyringsRequest(lastUpdate);
-
-    this->db->closeSession();
   }
 
-  void startupDatabase()
-  {
-    int rc = this->db->initSession();
-    if (rc != SQLITE_OK)
-      return;
-
-    this->db->exec("DROP TABLE IF EXISTS events;");
-    this->db->exec("CREATE TABLE IF NOT EXISTS events (\n"
-                   "  uid varchar(16) NOT NULL,\n"
-                   "  time datetime NOT NULL,\n"
-                   "  eventType varchar(4) NOT NULL,\n"
-                   ");\n");
-    this->db->exec("DROP TABLE IF EXISTS keyrings;");
-    this->db->exec("CREATE TABLE IF NOT EXISTS keyrings (\n"
-                   "  userId INTEGER NOT NULL,\n"
-                   "  uid varchar(16) NOT NULL,\n"
-                   "  userType varchar(10) NOT NULL,\n"
-                   "  lastUpdate datetime NOT NULL,\n"
-                   ");");
-    this->db->exec("DROP TABLE IF EXISTS schedules;");
-    this->db->exec("CREATE TABLE IF NOT EXISTS schedules (\n"
-                   "  id INTEGER NOT NULL,\n"
-                   "  dayOfWeek varchar(10) NOT NULL,\n"
-                   "  beginTime time NOT NULL,\n"
-                   "  endTime time NOT NULL,\n"
-                   "  userType varchar(10) NOT NULL,\n"
-                   "  lastUpdate datetime NOT NULL,\n"
-                   ");");
-
-    this->db->exec("INSERT INTO keyrings VALUES "
-                   "('28:D0:9F:59:3E',1,'PROFESSOR','0000-00-00 00:00:00'),"
-                   "('F6:B0:91:89:5E',1,'STUDENT','0000-00-00 00:00:00'),"
-                   "('1A008D81DDCB',1,'PROFESSOR','0000-00-00 00:00:00');");
-    this->db->exec("INSERT INTO schedules VALUES "
-                   "('SUNDAY','00:00:00','23:00:00','STUDENT','0000-00-00 00:00:00');");
-
-    this->db->closeSession();
-  }
   void startupNetwork()
   {
     // WIFI_STA: Station Mode (Client)
     // WIFI_AP: Access Point (Router)
     // WIFI_AP_STA: ! (Both)
     WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    WiFi.begin(config.wifiSSID.c_str(), config.wifiPassword.c_str());
 
     int count = 0;
     int wifi_connection_max_tries = 10;
@@ -443,11 +380,10 @@ protected:
 public:
   boolean hasNetwork() { return WiFi.isConnected(); }
 
-  AppTasks(SqliteDB *db) : db(db) { this->lastUpdate = time(NULL); }
+  AppTasks(){ this->lastUpdate = time(NULL); }
 
   void startup()
   {
-    this->startupDatabase();
     this->startupNetwork();
   }
 
@@ -456,7 +392,7 @@ public:
     // time_t represents the number of seconds from 1970 until now.
     time_t t = time(NULL);
     time_t diff = t - this->lastUpdate;
-    if (diff > UPDATE_DELAY)
+    if (diff > config.updateDelay)
     {
       int lastState = this->state;
       Serial.print("[LOG]: Ellapse time: ");

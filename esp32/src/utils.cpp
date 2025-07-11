@@ -1,7 +1,8 @@
 #ifndef APP_UTILS
 #define APP_UTILS
-#include "commons.cpp"
 #include <unordered_map>
+#include <ctime>
+#include <Arduino.h>
 
 class Utils
 {
@@ -70,6 +71,17 @@ public:
     return String(uid);
   }
 
+  static u_int32_t uidBytesToInt(byte *array, byte n)
+  {
+    u_int32_t uid = 0;
+    for (int i = 0; i < n; i++)
+    {
+      uid = (uid << 8) + array[i];
+    }
+
+    return uid;
+  }
+
   static String padZero(int x) { return x > 9 ? String(x) : "0" + String(x); }
 
   static String datetimeToString(time_t time)
@@ -85,6 +97,14 @@ public:
                          mStr + ":" + sStr;
 
     return dateAndHour;
+  }
+
+  static time_t stringToDatetime(String time)
+  {
+
+    time_t result = 0;
+    /** TODO */
+    return result;
   }
 
   static String currentDatetime()

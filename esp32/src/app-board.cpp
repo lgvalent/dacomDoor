@@ -1,8 +1,9 @@
 #ifndef APP_BOARD
 #define APP_BOARD
 #include <SPI.h>
+#include <MFRC522.h>
+#include <ctime>
 
-#include "commons.cpp"
 #include "utils.cpp"
 #include "board-models.cpp"
 #include "doorlock.cpp"
@@ -16,7 +17,7 @@ private:
   BoardModel *board;
   Doorlock *doorlock;
 
-  String *lastUid = NULL;
+  Uid lastUid = 0;
   time_t lastUidTime = Utils::now();
   bool hasDoorOpenEvent;
 
@@ -43,12 +44,12 @@ public:
     this->startupUidReader();
   }
 
-  void toggleDoor(String uid)
+  void toggleDoor(Uid uid)
   {
     this->board->toggleLocked();
     bool isLocked = this->board->isLocked();
 
-    if (RELAY_DELAY > 1)
+    if (config.relayDelay > 1)
     {
       if (isLocked)
         this->board->lock();
@@ -62,7 +63,7 @@ public:
         this->openDoor(uid);
     }
 
-    if (RELAY_DELAY > 1 || isLocked)
+    if (config.relayDelay > 1 || isLocked)
     {
       this->doorlock->saveEvent(
           uid,
@@ -81,9 +82,9 @@ public:
     }
   }
 
-  void openDoor(String uid)
+  void openDoor(Uid uid)
   {
-    uint32_t t = RELAY_DELAY * 1000.0;
+    uint32_t t = config.relayDelay * 1000.0;
     if (this->board->isLocked() || t < 1000)
     {
       this->board->unlock();
@@ -103,11 +104,11 @@ public:
     {
       this->hasDoorOpenEvent = false;
     }
-    else if (this->lastUid != NULL)
+    else if (this->lastUid)
     {
       time_t t = time(NULL);
       time_t diff = t - this->lastDoorOpenTime; // seconds
-      if (diff > DOOR_OPENED_ALERT_DELAY)
+      if (diff > config.doorOpenedAlertDelay)
       {
         this->board->beepOk();
         this->board->blinkActivityLed();
@@ -116,7 +117,7 @@ public:
         {
           this->hasDoorOpenEvent = true;
           this->doorlock->saveEvent(
-            *this->lastUid,
+            this->lastUid,
             EventType::OPENED,
             Utils::now());
         }
@@ -164,7 +165,7 @@ public:
     }
   }
 
-  void tryLearnUid(String uid)
+  void tryLearnUid(Uid uid)
   {
     bool wasLearned = this->doorlock->learnUid(uid);
 
@@ -181,7 +182,7 @@ public:
     }
   }
 
-  void tryCheckAccess(String uid)
+  void tryCheckAccess(Uid uid)
   {
     bool hasAccess = this->doorlock->checkAccess(uid);
 
@@ -217,11 +218,11 @@ public:
     if (!this->uidReader.PICC_ReadCardSerial())
       return;
 
-    String uid = Utils::uidBytesToString(
+    Uid uid = Utils::uidBytesToInt(
         this->uidReader.uid.uidByte,
         this->uidReader.uid.size);
 
-    this->lastUid = &uid;
+    this->lastUid = uid;
     this->lastUidTime = time(NULL);
 
     Serial.print("[LOG]: UID: ");

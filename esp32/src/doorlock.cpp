@@ -1,110 +1,68 @@
 #ifndef APP_DOORLOCK
 #define APP_DOORLOCK
-#include "commons.cpp"
 #include "config.cpp"
 #include "utils.cpp"
 
-#include "sqlite-db.cpp"
 #include "models.cpp"
+#include "daosqlite3.cpp"
 
 class Doorlock
 {
 private:
   UserType lastUserType;
-  SqliteDB *db;
-
+  KeyringDao keyringDao;
+  EventDao eventDao;
+  ScheduleDao scheduleDao;
 public:
   UserType getLastUserType() { return this->lastUserType; }
 
-  Doorlock(SqliteDB *db) : db(db) {}
+  Doorlock(){}
 
-  String SELECT_USER_TYPE_FROM_KEYRINGS_BY_UID(String uid)
+  void saveEvent(const Uid uid,const EventType eventType, const time_t time)
   {
-    String command = "SELECT userType FROM keyrings WHERE uid = '$1' LIMIT 1;";
-    command.replace("$1", uid);
-    return command;
-  }
+    Event event;
 
-  // The 'CURRENT' means in the current moment on time
-  String SELECT_CURRENT_SCHEDULE_BY_USER_TYPE(String userType)
-  {
-    String now = Utils::currentDatetime();
-    String dayOfWeek = Utils::currentWeekDay();
-
-    String command = "SELECT * FROM schedules\nWHERE userType = '$1', dayOfWeek = '$2', beginTime <= '$3', endTime >= '$4'\nLIMIT 1";
-    command.replace("$1", userType);
-    command.replace("$2", dayOfWeek);
-    command.replace("$3", now);
-    command.replace("$4", now);
-    return command;
-  }
-
-  void saveEvent(String uid, EventType eventType, time_t time)
-  {
-    EventsModel eventsModel;
-
-    eventsModel.build(
-        uid.c_str(),
+    event.build(
+        uid,
         time,
         eventType);
-
-    this->db->exec_(eventsModel.add().c_str());
+    this->eventDao.save(event);
   }
 
-  void saveKeyring(String uid)
+  void saveKeyring(Uid uid)
   {
-    KeyringsModel keyringsModel;
+    Keyring keyring;
 
-    keyringsModel.build(
-        uid.c_str(),             // uid
-        -1,                      // userId
-        "PROFESSOR",             // userType
-        Utils::currentDatetime() // lastUpdate
+    keyring.build(
+        uid,                     // uid
+        0,                       // userId
+        UserType::PROFESSOR,     // userType
+        Utils::now() // lastUpdate
     );
 
-    this->db->exec(keyringsModel.add().c_str());
+    keyringDao.save(keyring);
   }
 
-  bool hasSchedules()
-  {
-    this->db->exec_(SchedulesModel::SELECT_FIRST().c_str());
-    return this->db->hasResult();
-  }
-
-  bool checkAccessType(UserType userType)
+  bool checkAccessType(UserType userType, time_t time)
   {
     Serial.println(F("[LOG]: Check if user type is allowed on current schedule."));
 
     bool isNotStudent = userType != UserType::STUDENT;
 
-    if (isNotStudent)
-    {
-      return true;
-    }
-    else if (this->hasSchedules())
-    {
-      this->db->exec_(this->SELECT_CURRENT_SCHEDULE_BY_USER_TYPE(userTypeNames[userType]).c_str());
-      bool userInSchedule = this->db->hasResult();
-
-      return userInSchedule;
-    }
-
-    return true;
+    return userType != UserType::STUDENT || scheduleDao.hasSchedule(userType, time);
   }
 
-  bool checkSchedule(String uid)
+  bool checkSchedule(Uid uid)
   {
     Serial.println(F("[LOG]: Checking if uid exists on keyring."));
 
-    this->db->exec1_(this->SELECT_USER_TYPE_FROM_KEYRINGS_BY_UID(uid).c_str());
-    bool userExistInKeyring = this->db->hasResult();
+    Keyring keyring = keyringDao.findByUid(uid);
 
-    if (userExistInKeyring)
-    {
-      UserType userType = Utils::findEnumByValue<UserType>(userTypeNames, first_row.getCol("userType"));
-      lastUserType = userType;
-
-      return this->checkAccessType(userType);
+    if (keyring.isValid())
+    {      
+      bool result = this->checkAccessType(lastUserType, Utils::now());
+      if(result)lastUserType = keyring.getUserType();
+      return result;
     }
     else
     {
@@ -112,12 +70,11 @@ public:
     }
   }
 
-  bool learnUid(String uid)
+  bool learnUid(Uid uid)
   {
     Serial.println(F("[LOG]: Learning uid."));
-    this->db->exec_(this->SELECT_USER_TYPE_FROM_KEYRINGS_BY_UID(uid).c_str());
-
-    if (this->db->hasResult())
+    Keyring keyring = keyringDao.findByUid(uid);
+    if (keyring.isValid())
     {
       return false;
     }
@@ -128,7 +85,7 @@ public:
     }
   }
 
-  bool checkAccess(String uid)
+  bool checkAccess(Uid uid)
   {
     bool hasAccess = this->checkSchedule(uid);
 

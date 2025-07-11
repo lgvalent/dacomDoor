@@ -1,6 +1,8 @@
 #ifndef BOARD_MODELS
 #define BOARD_MODELS
-#include "commons.cpp"
+
+#include <Arduino.h>
+
 
 class GPIO
 {

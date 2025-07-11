@@ -1,27 +1,32 @@
 #ifndef APP_MODELS
 #define APP_MODELS
 
-#include <string>
+#include <Arduino.h>
 #include <unordered_map>
+#include <ctime>
 #include "utils.cpp"
 
 class ModelBase
 {
-protected:
-  int consumed = 0;
-  int completed = 0;
-
 public:
-  void consume() { this->consumed = 0; }
-  bool isCompleted() { return this->consumed == this->completed; }
-
-  virtual String toJSON() = 0;
-
-  virtual String add() = 0;
-  virtual String remove() = 0;
-  virtual String update() = 0;
-  virtual String getById() = 0;
+  virtual bool isValid() const = 0;
+  virtual String toJSON() const = 0;
 };
+
+typedef u_int32_t Uid; 
+
+#define UID_NULL 0
+
+enum class DayOfWeek: char{SUNDAY,MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY,SATURDAY};
+
+static std::unordered_map<DayOfWeek, String> dayOfWeekNames = { 
+  {DayOfWeek::SUNDAY, "SUNDAY"},
+  {DayOfWeek::MONDAY, "MONDAY"},
+  {DayOfWeek::TUESDAY, "TUESDAY"},
+  {DayOfWeek::WEDNESDAY, "WEDNESDAY"},
+  {DayOfWeek::THURSDAY, "THURSDAY"},
+  {DayOfWeek::FRIDAY, "FRIDAY"},
+  {DayOfWeek::SATURDAY, "SATURDAY"}}; 
 
 enum class EventType: char{IN, OUT, OPENED};
 
@@ -29,123 +34,79 @@ static std::unordered_map<EventType, String> eventTypeNames = {
   {EventType::IN, "IN"},
   {EventType::OUT, "OUT"},
   {EventType::OPENED, "OPENED"}}; 
-
+  
 enum class UserType: char{STUDENT, PROFESSOR, EMPLOYEE};
+
 static std::unordered_map<UserType, String> userTypeNames = { 
   {UserType::STUDENT, "STUDENT"},
   {UserType::PROFESSOR, "PROFESSOR"},
   {UserType::EMPLOYEE, "EMPLOYEE"}}; 
 
-class EventsModel : public ModelBase
+class Event: public ModelBase
 {
 private:
-  char uid[17];
+  Uid uid = 0;
   time_t time;
   EventType eventType;
 public:
   static String JSON_TEMPLATE() { return "{\"uid\":\"$1\",\"time\":\"$2\",\"eventType\":\"$3\"}"; }
-  static String INSERT_TEMPLATE() { return "INSERT INTO events VALUES ('$1', '$2', '$3');"; }
-  static String DELETE_TEMPLATE() { return "DELETE FROM events\nWHERE uid = '$1';"; }
-  static String UPDATE_TEMPLATE()
-  {
-    return "UPDATE events\n"
-           "SET time = '$2', eventType = '$3'\n"
-           "WHERE uid = '$1';";
-  }
-  static String SELECT_BY_ID_TEMPLATE() { return "SELECT uid FROM events WHERE uid = $1 LIMIT 1;"; }
 
-  EventsModel() { this->completed = 1 | 2 | 4; }
+  Event() { }
 
-  void build(const char *uid, time_t time, EventType eventType)
+  bool isValid()const{return this->uid!=0;}
+
+  void build(const Uid uid, time_t time, EventType eventType)
   {
     this->setUid(uid);
     this->setTime(time);
     this->setEventType(eventType);
   }
 
-  void setUid(const char *uid)
+  Uid getUid()const {return this->uid;}
+  void setUid(const Uid uid)
   {
-    this->consumed |= 1;
-    int i;
-    for (i = 0; i < 16 && uid[i]; i++)
-      this->uid[i] = uid[i];
-    this->uid[i] = 0;
+    this->uid = uid;
   }
+  time_t getTime()const{return this->time;}
   void setTime(time_t time)
   {
-    this->consumed |= 2;
     this->time = time;
   }
+  EventType getEventType()const{return this->eventType;}
   void setEventType(EventType eventType)
   {
-    this->consumed |= 4;
     this->eventType = eventType;
   }
 
-  static String toJSON(char *uid, time_t time, EventType eventType)
+  static String toJSON(Uid uid, time_t time, EventType eventType)
   {
-    String json = EventsModel::JSON_TEMPLATE();
+    String json = Event::JSON_TEMPLATE();
     json.replace("$1", String(uid));
     json.replace("$2", Utils::datetimeToString(time));
     json.replace("$3", eventTypeNames[eventType]);
     return json;
   }
 
-  String toJSON() { return EventsModel::toJSON(this->uid, this->time, this->eventType); }
-
-  String add()
-  {
-    String command = EventsModel::INSERT_TEMPLATE();
-    command.replace("$1", String(this->uid));
-    command.replace("$2", Utils::datetimeToString(this->time));
-    command.replace("$3", eventTypeNames[this->eventType]);
-    return command;
-  }
-  String remove()
-  {
-    String command = EventsModel::DELETE_TEMPLATE();
-    command.replace("$1", String(this->uid));
-    return command;
-  }
-  String update()
-  {
-    String command = EventsModel::UPDATE_TEMPLATE();
-    command.replace("$1", String(this->uid));
-    command.replace("$2", Utils::datetimeToString(this->time));
-    command.replace("$3", eventTypeNames[this->eventType]);
-    return command;
-  }
-  String getById()
-  {
-    String command = EventsModel::SELECT_BY_ID_TEMPLATE();
-    command.replace("$1", String(this->uid));
-    return command;
-  }
+  String toJSON() const{ return Event::toJSON(this->uid, this->time, this->eventType); }
+  String toJSON_() const{ return Event::toJSON(this->uid, this->time, this->eventType); }
 };
 
-class KeyringsModel : public ModelBase
+class Keyring : public ModelBase
 {
 private:
-  long userId;
-  char uid[17];
-  char userType[11]; // "STUDENT" | "PROFESSOR" | "EMPLOYEE"
-  String lastUpdate; // datatime
+  Uid userId;
+  Uid uid = 0;
+  UserType userType;
+  time_t lastUpdate;
 
 public:
   static String JSON_TEMPLATE() { return "{\"userId\":$1,\"uid\":\"$2\",\"userType\":\"$3\",\"lastUpdate\":\"$4\"}"; }
-  static String INSERT_TEMPLATE() { return "INSERT INTO keyrings VALUES ($1, '$2', '$3', '$4');"; }
-  static String DELETE_TEMPLATE() { return "DELETE FROM keyrings WHERE userId = $1;"; }
-  static String UPDATE_TEMPLATE()
-  {
-    return "UPDATE keyrings\n"
-           "SET uid = '$2', userType = '$3', lastUpdate = '$4'\n"
-           "WHERE userId = $1;";
-  }
-  static String SELECT_BY_ID_TEMPLATE() { return "SELECT userId FROM keyrings WHERE userId = $1 LIMIT 1;"; }
 
-  KeyringsModel() { this->completed = 1 | 2 | 4 | 8; }
+  Keyring() {}
 
-  void build(const char *uid, long userId, const char *userType, String lastUpdate)
+  bool isValid()const{return this->uid!=0;}
+
+  void build(const Uid uid,const Uid userId, const UserType userType, const time_t lastUpdate)
   {
     this->setUserId(userId);
     this->setUid(uid);
@@ -153,102 +114,73 @@ public:
     this->setLastUpdate(lastUpdate);
   }
 
-  void setUserId(long userId)
+  void setUserId(Uid userId)
   {
-    this->consumed |= 1;
     this->userId = userId;
   }
-  void setUid(const char *uid)
+  void setUid(const Uid uid)
   {
-    this->consumed |= 2;
-    int i;
-    for (i = 0; i < 16 && uid[i]; i++)
-      this->uid[i] = uid[i];
-    this->uid[i] = 0;
+    this->uid = uid;
   }
-  void setUserType(const char *userType)
+  void setUserType(const UserType userType)
   {
-    this->consumed |= 4;
-    int i;
-    for (i = 0; i < 10 && userType[i]; i++)
-      this->userType[i] = userType[i];
-    this->userType[i] = 0;
+    this->userType = userType;
   }
-  void setLastUpdate(String lastUpdate)
+  void setLastUpdate(time_t lastUpdate)
   {
-    this->consumed |= 8;
     this->lastUpdate = lastUpdate;
   }
 
-  static String toJSON(int userId, char *uid, char *userType, String lastUpdate)
+  Uid getUserId() const
   {
-    String json = KeyringsModel::JSON_TEMPLATE();
+    return this->userId;
+  }
+
+  Uid getUid() const
+  {
+    return this->uid;
+  }
+
+  UserType getUserType() const
+  {
+    return this->userType;
+  }
+
+  time_t getLastUpdate() const
+  {
+    return this->lastUpdate;
+  }
+
+  static String toJSON(const Uid userId, const Uid uid, UserType userType, time_t lastUpdate)
+  {
+    String json = Keyring::JSON_TEMPLATE();
     json.replace("$1", String(userId));
     json.replace("$2", String(uid));
-    json.replace("$3", String(userType));
-    json.replace("$4", lastUpdate);
+    json.replace("$3", userTypeNames[userType]);
+    json.replace("$4", Utils::datetimeToString(lastUpdate));
     return json;
   }
-  String toJSON() { return KeyringsModel::toJSON(this->userId, this->uid, this->userType, this->lastUpdate); }
-
-  String add()
-  {
-    String command = KeyringsModel::INSERT_TEMPLATE();
-    command.replace("$1", String(this->userId));
-    command.replace("$2", String(this->uid));
-    command.replace("$3", String(this->userType));
-    command.replace("$4", this->lastUpdate);
-    return command;
-  }
-  String remove()
-  {
-    String command = KeyringsModel::DELETE_TEMPLATE();
-    command.replace("$1", String(this->userId));
-    return command;
-  }
-  String update()
-  {
-    String command = KeyringsModel::UPDATE_TEMPLATE();
-    command.replace("$1", String(this->userId));
-    command.replace("$2", String(this->uid));
-    command.replace("$3", String(this->userType));
-    command.replace("$4", this->lastUpdate);
-    return command;
-  }
-  String getById()
-  {
-    String command = KeyringsModel::SELECT_BY_ID_TEMPLATE();
-    command.replace("$1", String(this->userId));
-    return command;
-  }
+  String toJSON() const { return Keyring::toJSON(this->userId, this->uid, this->userType, this->lastUpdate); }
 };
 
-class SchedulesModel : public ModelBase
+
+class Schedule : public ModelBase
 {
 private:
-  long id;
-  char dayOfWeek[11]; // "SUNDAY" | "MONDAY" | "THUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY"
-  String beginTime;   // time
-  String endTime;     // time
-  char userType[11];  // "STUDENT" | "PROFESSOR" | "EMPLOYEE"
-  String lastUpdate;  // datatime
+  Uid id = 0;
+  DayOfWeek dayOfWeek;
+  time_t beginTime;   // time
+  time_t endTime;     // time
+  UserType userType;
+  time_t lastUpdate;  // datatime
 public:
   static String JSON_TEMPLATE() { return "{\"dayOfWeek\":\"$1\",\"beginTime\":\"$2\",\"endTime\":\"$3\",\"userType\":\"$4\",\"lastUpdate\":\"$5\"}"; }
-  static String INSERT_TEMPLATE() { return "INSERT INTO schedules VALUES ($1, '$2', '$3', '$4', '$5', '$6');"; }
-  static String DELETE_TEMPLATE() { return "DELETE FROM schedules WHERE id = $1;"; }
-  static String UPDATE_TEMPLATE()
-  {
-    return "UPDATE schedules\n"
-           "SET dayOfWeek = '$2', beginTime = '$3', endTime = '$4', userType = '$5', lastUpdate = '$6'\n"
-           "WHERE id = $1;";
-  }
-  static String SELECT_BY_ID_TEMPLATE() { return "SELECT id FROM schedules WHERE id = $1 LIMIT 1;"; }
 
-  static String SELECT_FIRST() { return "SELECT * FROM schedules LIMIT 1;"; }
+  Schedule() {}
+ 
+  bool isValid()const{return this->id!=0;}
 
-  SchedulesModel() { this->completed = 1 | 2 | 4 | 8 | 16 | 32; }
-
-  void build(long id, const char *dayOfWeek, String beginTime, String endTime, const char *userType, String lastUpdate)
+  void build(Uid id, const DayOfWeek dayOfWeek, time_t beginTime, time_t endTime, const UserType userType, time_t lastUpdate)
   {
     this->setId(id);
     this->setDayOfWeek(dayOfWeek);
@@ -258,89 +190,110 @@ public:
     this->setLastUpdate(lastUpdate);
   }
 
-  void setId(long id)
+  void setId(Uid id)
   {
-    this->consumed |= 1;
     this->id = id;
   }
-  void setDayOfWeek(const char *dayOfWeek)
+  void setDayOfWeek(const DayOfWeek dayOfWeek)
   {
-    this->consumed |= 2;
-    int i;
-    for (i = 0; i < 10 && dayOfWeek[i]; i++)
-      this->dayOfWeek[i] = dayOfWeek[i];
-    this->dayOfWeek[i] = 0;
+    this->dayOfWeek = dayOfWeek;
   }
-  void setBeginTime(String beginTime)
+  void setBeginTime(time_t beginTime)
   {
-    this->consumed |= 4;
     this->beginTime = beginTime;
   }
-  void setEndTime(String endTime)
+  void setEndTime(time_t endTime)
   {
-    this->consumed |= 8;
     this->endTime = endTime;
   }
-  void setUserType(const char *userType)
+  void setUserType(const UserType userType)
   {
-    this->consumed |= 16;
-    int i;
-    for (i = 0; i < 10 && userType[i]; i++)
-      this->userType[i] = userType[i];
-    this->userType[i] = 0;
+    this->userType = userType;
   }
-  void setLastUpdate(String lastUpdate)
+  void setLastUpdate(time_t lastUpdate)
   {
-    this->consumed |= 32;
     this->lastUpdate = lastUpdate;
   }
 
-  static String toJSON(long id, char *dayOfWeek, String beginTime, String endTime, char *userType, String lastUpdate)
+  Uid getId() const
   {
-    String json = SchedulesModel::JSON_TEMPLATE();
-    json.replace("$1", String(dayOfWeek));
-    json.replace("$2", beginTime);
-    json.replace("$3", endTime);
-    json.replace("$4", String(userType));
-    json.replace("$5", lastUpdate);
+    return this->id;
+  }
+
+  DayOfWeek getDayOfWeek() const
+  {
+    return this->dayOfWeek;
+  }
+
+  time_t getBeginTime() const
+  {
+    return this->beginTime;
+  }
+
+  time_t getEndTime() const
+  {
+    return this->endTime;
+  }
+
+  UserType getUserType() const
+  {
+    return this->userType;
+  }
+
+  time_t getLastUpdate() const
+  {
+    return this->lastUpdate;
+  }
+
+  static String toJSON(Uid id, const DayOfWeek dayOfWeek, time_t beginTime, time_t endTime, const UserType userType, time_t lastUpdate) 
+  {
+    String json = Schedule::JSON_TEMPLATE();
+    json.replace("$1", Utils::weekDay(static_cast<char>(dayOfWeek)));
+    json.replace("$2", Utils::datetimeToString(beginTime));
+    json.replace("$3", Utils::datetimeToString(endTime));
+    json.replace("$4", userTypeNames[userType]);
+    json.replace("$5", Utils::datetimeToString(lastUpdate));
     return json;
   }
-  String toJSON() { return SchedulesModel::toJSON(this->id, this->dayOfWeek, this->beginTime, this->endTime, this->userType, this->lastUpdate); }
-
-  String add()
-  {
-    String command = SchedulesModel::INSERT_TEMPLATE();
-    command.replace("$1", String(this->id));
-    command.replace("$2", String(this->dayOfWeek));
-    command.replace("$3", this->beginTime);
-    command.replace("$4", this->endTime);
-    command.replace("$5", String(this->userType));
-    command.replace("$6", this->lastUpdate);
-    return command;
-  }
-  String remove()
-  {
-    String command = SchedulesModel::DELETE_TEMPLATE();
-    command.replace("$1", String(this->id));
-    return command;
-  }
-  String update()
-  {
-    String command = SchedulesModel::UPDATE_TEMPLATE();
-    command.replace("$1", String(this->id));
-    command.replace("$2", String(this->dayOfWeek));
-    command.replace("$3", this->beginTime);
-    command.replace("$4", this->endTime);
-    command.replace("$5", String(this->userType));
-    command.replace("$6", this->lastUpdate);
-    return command;
-  }
-  String getById()
-  {
-    String command = SchedulesModel::SELECT_BY_ID_TEMPLATE();
-    command.replace("$1", String(this->id));
-    return command;
-  }
+  String toJSON() const { return Schedule::toJSON(this->id, this->dayOfWeek, this->beginTime, this->endTime, this->userType, this->lastUpdate); }
 };
+
+
+class Config {
+  public:
+  inline static String CONFIG_PASSWORD =  "CONFIG_PASSWORD";
+  inline static String BOARD_VERSION =  "BOARD_VERSION";
+  inline static String SERVER_URL =  "SERVER_URL";
+  inline static String ROOM_NAME =  "ROOM_NAME";
+  inline static String UPDATE_DELAY =  "UPDATE_DELAY";
+  inline static String RELAY_DELAY =  "RELAY_DELAY";
+  inline static String DOOR_OPENED_ALERT_DELAY =  "DOOR_OPENED_ALERT_DELAY";
+  inline static String WIFI_SSID =  "WIFI_SSID";
+  inline static String WIFI_PASSWORD =  "WIFI_PASSWORD";
+
+  int boardVersion = 6;
+  String configPassword = "admin";
+  String serverURL = "http://localhost:3430";
+  String roomName = "CAFE";
+  String fakeLastUpdate = "2001-01-01 00:00:00";
+  int updateDelay = 60;                  // seconds
+  double relayDelay = 0.1;               // seconds (fractional)
+  int doorOpenedAlertDelay = 30;         // seconds
+  String wifiSSID = "wifi-name";
+  String wifiPassword = "wifi-password";
+
+  void applyConfig(const String& key, const String& value) {
+   if (key == Config::CONFIG_PASSWORD) this->configPassword = value;
+   else if (key == Config::BOARD_VERSION) this->boardVersion = value.toInt();
+   else if (key == Config::SERVER_URL) this->serverURL = value;
+   else if (key == Config::ROOM_NAME) this->roomName = value;
+   else if (key == Config::UPDATE_DELAY) this->updateDelay = value.toInt();
+   else if (key == Config::RELAY_DELAY) this->relayDelay = value.toInt();
+   else if (key == Config::DOOR_OPENED_ALERT_DELAY) this->doorOpenedAlertDelay = value.toInt();
+   else if (key == Config::WIFI_SSID) this->wifiSSID = value;
+   else if (key == Config::WIFI_PASSWORD) this->wifiPassword = value;
+ }
+};
+
 
 #endif
