@@ -10,13 +10,21 @@ class Doorlock
 {
 private:
   UserType lastUserType;
-  KeyringDao keyringDao;
-  EventDao eventDao;
-  ScheduleDao scheduleDao;
+  DaoManager *daoManager;
 public:
   UserType getLastUserType() { return this->lastUserType; }
 
-  Doorlock(){}
+  Doorlock():daoManager(&DaoManager::instance()){
+    Keyring keyring;
+    keyring.build(
+        5657481,                     // uid
+        123456,                     // userId
+        UserType::PROFESSOR,   // userType
+        Utils::now()           // lastUpdate
+    );
+
+    this->daoManager->keyringDao.save(keyring);
+  }
 
   void saveEvent(const Uid uid,const EventType eventType, const time_t time)
   {
@@ -26,7 +34,7 @@ public:
         uid,
         time,
         eventType);
-    this->eventDao.save(event);
+    this->daoManager->eventDao.save(event);
   }
 
   void saveKeyring(Uid uid)
@@ -40,7 +48,7 @@ public:
         Utils::now() // lastUpdate
     );
 
-    keyringDao.save(keyring);
+    daoManager->keyringDao.save(keyring);
   }
 
   bool checkAccessType(UserType userType, time_t time)
@@ -49,18 +57,18 @@ public:
 
     bool isNotStudent = userType != UserType::STUDENT;
 
-    return userType != UserType::STUDENT || scheduleDao.hasSchedule(userType, time);
+    return userType != UserType::STUDENT || daoManager->scheduleDao.hasSchedule(userType, time);
   }
 
   bool checkSchedule(Uid uid)
   {
     Serial.println(F("[LOG]: Checking if uid exists on keyring."));
 
-    Keyring keyring = keyringDao.findByUid(uid);
+    Keyring keyring = daoManager->keyringDao.findByUid(uid);
 
     if (keyring.isValid())
     {      
-      bool result = this->checkAccessType(lastUserType, Utils::now());
+      bool result = this->checkAccessType(keyring.getUserType(), Utils::now());
       if(result)lastUserType = keyring.getUserType();
       return result;
     }
@@ -73,7 +81,7 @@ public:
   bool learnUid(Uid uid)
   {
     Serial.println(F("[LOG]: Learning uid."));
-    Keyring keyring = keyringDao.findByUid(uid);
+    Keyring keyring = daoManager->keyringDao.findByUid(uid);
     if (keyring.isValid())
     {
       return false;

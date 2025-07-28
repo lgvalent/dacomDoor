@@ -39,28 +39,45 @@ static boolean is_valid_json(JsonObject doc, Vector<String> keys)
 class AppTasks
 {
 protected:
-  KeyringDao keyringDao;
-  EventDao eventDao;
-  ScheduleDao scheduleDao;
+  DaoManager *daoManager;
+  AppConfig *appConfig;
 
-  time_t lastUpdate;
-  int state = 0; // [0-3]: ["Keyring", "Schedule", "Events"]
+  bool timeUpdated = false;
 
-  int networkGuard()
+  bool networkGuard()
   {
     if (!this->hasNetwork())
     {
       Serial.println(F("[WARN]: Network was not connected"));
-      return 1;
+      return false;
     }
-    return 0;
+    return true;
   }
 
-  int sendUpdateEventsRequest(Vector<String> &result)
+  void updateDateTime()
+  {
+    Serial.print("Aguardando sincronização NTP...");
+    configTime(this->appConfig->config.gmtZone*3600, 0, "pool.ntp.org", "time.nist.gov");
+    struct tm timeinfo;
+    int retry = 0;
+    const int retry_count = 10;
+    while (!getLocalTime(&timeinfo) && retry < retry_count) {
+      Serial.print(".");
+      delay(1000);
+      retry++;
+    }
+    if (retry < retry_count) {
+      Serial.printf("\nNTP sincronizado: %s\n", asctime(&timeinfo));
+      this->timeUpdated = true;
+    } else {
+      Serial.print("\n[WARN]: Falha ao sincronizar NTP\n");
+    }
+  }
+  bool sendUpdateEventsRequest(Vector<String> &result)
   {
     HTTPClient http;
 
-    http.begin(config.serverURL + "/doorlock/" + config.roomName + "/events");
+    http.begin(this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/events");
     http.addHeader("Content-Type", "application/json");
 
     int code = http.POST(vector_to_string(result));
@@ -69,20 +86,18 @@ protected:
       Serial.println("[LOG]: All events update");
     else
     {
-      Serial.println("[ERROR]: Fail to update events");
-      Serial.print("[ERROR]: StatusCode: ");
-      Serial.println(code);
+      Serial.printf("[ERROR]: Fail to update events. Code %d\n", code);
     }
 
     http.end();
 
-    return code;
+    return code==200 || code==204;
   }
-  int sendUpdateScheduleRequest(time_t lastUpdate)
+  bool sendUpdateScheduleRequest()
   {
     HTTPClient http;
 
-    http.begin(config.serverURL + "/doorlock/" + config.roomName + "/schedules?lastUpdate=\"" + Utils::datetimeToString(lastUpdate) + "\"");
+    http.begin(this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/schedules?lastUpdate=\"" + Utils::datetimeToString(this->appConfig->config.lastUpdate) + "\"");
     http.addHeader("Content-Type", "application/json");
 
     int code = http.GET();
@@ -103,13 +118,13 @@ protected:
     }
 
     http.end();
-    return code;
+    return code==200 || code==204;
   }
-  int sendUpdateKeyringsRequest(time_t lastUpdate)
+  bool sendUpdateKeyringsRequest()
   {
     HTTPClient http;
 
-    http.begin(config.serverURL + "/doorlock/" + config.roomName + "/keyring?lastUpdate=\"" + Utils::datetimeToString(lastUpdate) + "\"");
+    http.begin(this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/keyring?lastUpdate=\"" + Utils::datetimeToString(this->appConfig->config.lastUpdate) + "\"");
     http.addHeader("Content-Type", "application/json");
 
     int code = http.GET();
@@ -129,7 +144,7 @@ protected:
       this->updateInternalKeyrings(strJson);
     }
     http.end();
-    return code;
+    return code == 200 || code == 204;
   }
 
   void updateInternalKeyrings(String &strJson)
@@ -156,11 +171,11 @@ protected:
         if (is_valid_json(x, removedKeys))
         {
           Uid userId = x["userId"];
-          Keyring keyring = keyringDao.findByUid(userId);
+          Keyring keyring = daoManager->keyringDao.findByUid(userId);
 
           if (keyring.isValid())
           {
-            keyringDao.remove(userId);
+            daoManager->keyringDao.remove(userId);
             Serial.print("[LOG]: keyring removed: ");
             Serial.println(userId);
           }
@@ -193,19 +208,19 @@ protected:
           
           UserType userType = Utils::findEnumByValue(userTypeNames, userTypeName);
 
-          Keyring keyring = keyringDao.findByUserId(userId);
+          Keyring keyring = daoManager->keyringDao.findByUserId(userId);
           
           if (keyring.isValid())
           {
             keyring.build(uid, userId, userType, Utils::stringToDatetime(lastUpdate));
-            keyringDao.update(keyring);
+            daoManager->keyringDao.update(keyring);
             Serial.print("[LOG]: keyring updated: ");
             Serial.println(userId);
           }
           else
           {
             keyring.build(uid, userId, userType, Utils::stringToDatetime(lastUpdate));
-            keyringDao.save(keyring);
+            daoManager->keyringDao.save(keyring);
             Serial.print("[LOG]: keyring added: ");
             Serial.println(userId);
           }
@@ -245,11 +260,11 @@ protected:
         if (is_valid_json(x, removedKeys))
         {
           Uid id = x["id"];
-          Schedule schedule = scheduleDao.findById(id);
+          Schedule schedule = daoManager->scheduleDao.findById(id);
 
           if (schedule.isValid())
           {
-            scheduleDao.remove(id);
+            daoManager->scheduleDao.remove(id);
             Serial.print("[LOG]: schedule removed: ");
             Serial.println(id);
           }
@@ -284,19 +299,19 @@ protected:
           const char *userType = x["userType"];     // "STUDENT" | "PROFESSOR" | "EMPLOYEE"
           const char *lastUpdate = x["lastUpdate"]; // datatime
           
-          Schedule schedule = scheduleDao.findById(id);
+          Schedule schedule = daoManager->scheduleDao.findById(id);
           
           if (schedule.isValid())
           {
             schedule.build(id, Utils::findEnumByValue(dayOfWeekNames, String(dayOfWeek)), Utils::stringToDatetime(beginTime), Utils::stringToDatetime(endTime), Utils::findEnumByValue(userTypeNames, String(userType)), Utils::stringToDatetime(lastUpdate));
-            scheduleDao.update(schedule);
+            daoManager->scheduleDao.update(schedule);
             Serial.print("[LOG]: schedule updated: ");
             Serial.println(id);
           }
           else
           {
             schedule.build(id, Utils::findEnumByValue(dayOfWeekNames, String(dayOfWeek)), Utils::stringToDatetime(beginTime), Utils::stringToDatetime(endTime), Utils::findEnumByValue(userTypeNames, String(userType)), Utils::stringToDatetime(lastUpdate));
-            scheduleDao.save(schedule);
+            daoManager->scheduleDao.save(schedule);
             Serial.print("[LOG]: schedule added: ");
             Serial.println(id);
           }
@@ -313,74 +328,76 @@ protected:
     }
   }
 
-  void updateEvents()
+  bool updateEvents()
   {
-    if (this->networkGuard())
-      return;
+    Serial.println("Updating events..");
+    if (!this->networkGuard())
+      return false;
 
     Vector<String> rs;
 
-    eventDao.process(
-        [&rs](const Event &event) {
-          rs.push_back(event.toJSON_());
-          return true;
-        });
+    for(Event &event : daoManager->eventDao.findAll())
+    {
+      rs.push_back(event.toJSON());
+    }
+    int code = 204;
 
     if (rs.size())
     {
-      int code = this->sendUpdateEventsRequest(rs);
+      code = this->sendUpdateEventsRequest(rs);
 
-      if (code == 200)
-        eventDao.removeAll();
+      if (code == 200){
+        daoManager->eventDao.removeAll();
+      }
     }
+
+    return code == 200 || code == 204;
   }
-  void updateSchedules()
+  bool updateSchedules()
   {
-    if (this->networkGuard())
-      return;
+    Serial.println("Updating schedules..");
+    if (!this->networkGuard())
+      return false;
 
-    time_t lastUpdate = scheduleDao.getLastUpdate();
-
-    this->sendUpdateScheduleRequest(lastUpdate);
+    return this->sendUpdateScheduleRequest();
   }
-  void updateKeyrings()
+  bool updateKeyrings()
   {
-    if (this->networkGuard())
-      return;
-
-    time_t lastUpdate = keyringDao.getLastUpdate();
-
-    this->sendUpdateKeyringsRequest(lastUpdate);
+    Serial.println("Updating keyrings..");
+    if (!this->networkGuard())
+      return false;
+    return this->sendUpdateKeyringsRequest();
   }
 
   void startupNetwork()
   {
-    // WIFI_STA: Station Mode (Client)
-    // WIFI_AP: Access Point (Router)
-    // WIFI_AP_STA: ! (Both)
+    WiFi.setHostname("DACOM DOOR Esp32");
     WiFi.mode(WIFI_STA);
-    WiFi.begin(config.wifiSSID.c_str(), config.wifiPassword.c_str());
+    WiFi.begin(this->appConfig->config.wifiSSID.c_str(), this->appConfig->config.wifiPassword.c_str());
 
     int count = 0;
     int wifi_connection_max_tries = 10;
     // Waiting for wifi connection
-    while (count < wifi_connection_max_tries && WiFi.status() != WL_CONNECTED)
+    while (count < wifi_connection_max_tries && !WiFi.isConnected())
     {
       delay(1000);
-      Serial.println("Connecting to WiFi..");
+      Serial.printf("Connecting to WiFi %s...%d\n", this->appConfig->config.wifiSSID, count);
       count++;
     }
 
-    if (WiFi.status() != WL_CONNECTED)
+    if (!WiFi.isConnected()) {
       Serial.println("Fail to connect to WiFi!");
-    else
+    } else {
       Serial.println("WiFi connected!");
+      this->updateDateTime();
+    }
+
   }
 
 public:
   boolean hasNetwork() { return WiFi.isConnected(); }
 
-  AppTasks(){ this->lastUpdate = time(NULL); }
+  AppTasks(AppConfig* appConfig): daoManager(&DaoManager::instance()), appConfig(appConfig){ }
 
   void startup()
   {
@@ -389,41 +406,31 @@ public:
 
   void run()
   {
+    if(!this->networkGuard()) return;
+
+    if(this->hasNetwork() && !this->timeUpdated)
+        this->updateDateTime();
+
     // time_t represents the number of seconds from 1970 until now.
-    time_t t = time(NULL);
-    time_t diff = t - this->lastUpdate;
-    if (diff > config.updateDelay)
+    time_t t = Utils::now();
+    time_t diff = t - this->appConfig->config.lastUpdate;
+    if (diff > this->appConfig->config.updateDelay)
     {
-      int lastState = this->state;
-      Serial.print("[LOG]: Ellapse time: ");
-      Serial.println(diff);
-
-      this->lastUpdate = t;
-      switch (this->state)
+      if(this->updateKeyrings()&&
+         this->updateSchedules() &&
+         this->updateEvents())
       {
-      case 0:
-        this->updateKeyrings();
-        this->state = 1;
-        break;
-      case 1:
-        this->updateSchedules();
-        this->state = 2;
-        break;
-      case 2:
-        this->updateEvents();
-        this->state = 0;
-        break;
-      default:
-        this->state = 0;
-        break;
+        this->appConfig->config.lastUpdate = t;
+        Serial.print("[LOG]: Last update: ");
+        Serial.println(Utils::datetimeToString(t));
       }
-      Serial.print("[LOG] state: ");
-      Serial.print(lastState);
-      Serial.print(" -> ");
-      Serial.println(this->state);
-
-      Serial.println();
+      else
+      {
+        Serial.println("[ERROR]: Fail to update keyrings, schedules or events.");
+      }
     }
+
+    // esp_light_sleep_start();
   }
 };
 

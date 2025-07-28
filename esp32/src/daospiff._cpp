@@ -1,0 +1,361 @@
+#ifndef DAO_SQLITE3
+#define DAO_SQLITE3
+
+#include <Arduino.h>
+#include <ArduinoJson.h>
+#include <vector>
+#include <functional>
+#include <SPIFFS.h>
+
+#include "models.cpp"
+
+#define CONFIG_FILE "/spiffs/config.json"
+#define KEYRING_FILE "/spiffs/keyrings.json"
+#define EVENTS_FILE "/spiffs/events.json"
+#define SCHEDULES_FILE "/spiffs/schedules.json"
+
+/**
+ * sqlite3_bind_int() uses a 32bit integer and models.cpp::Uid is a u_int32_t compatible
+ */
+
+class DBManager {
+private:
+    sqlite3* db;
+
+    DBManager() {
+      if (!SPIFFS.begin(true)) {
+        Serial.println("[SPIFFS] Erro ao montar SPIFFS! Formatando...");
+        SPIFFS.format();
+        if (!SPIFFS.begin()) {
+          Serial.println("[SPIFFS] Não pôde ser montado nem formatado!");
+          // Trate erro crítico aqui
+        }
+      }
+      Serial.printf("[SPIFFS] Total bytes: %d, Usados: %d, Livres: %d\n", SPIFFS.totalBytes(), SPIFFS.usedBytes(), SPIFFS.totalBytes() - SPIFFS.usedBytes());
+      File testFile = SPIFFS.open("/spiffs/test.txt", FILE_WRITE);
+      if (!testFile) {
+        Serial.println("[SPIFFS] Falha ao criar arquivo de teste! Verifique partição SPIFFS.");
+
+// Utilitário para ler e escrever arquivos JSON no SPIFFS
+namespace SpiffsUtil {
+  String readFile(const char* path) {
+    File file = SPIFFS.open(path, FILE_READ);
+    if (!file) return "";
+    String content = file.readString();
+    file.close();
+    return content;
+  }
+  bool writeFile(const char* path, const String& content) {
+    File file = SPIFFS.open(path, FILE_WRITE);
+    if (!file) return false;
+    file.print(content);
+    file.close();
+    return true;
+  }
+}
+  }
+
+  bool executeSQL(const std::string& sql) {
+    Serial.printf("[LOG]: Executing SQL: %s\n", sql.c_str());
+    char* errMsg = nullptr;
+    int rc = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg);
+    if (rc != SQLITE_OK) {
+      sqlite3_free(errMsg);
+      Serial.printf("[ERROR]: SQL error: %s\n", sqlite3_errmsg(db));
+      return false;
+    }
+    return true;
+  }
+
+  bool insert(const std::string& sql, const T& model, Binder binder) {
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) return false;
+    binder(stmt, model);
+    bool result = sqlite3_step(stmt) == SQLITE_DONE;
+    sqlite3_finalize(stmt);
+    return result;
+  }
+
+  bool update(const std::string& sql, const T& model, Binder binder) {
+    return insert(sql, model, binder); // Same pattern
+  }
+
+  bool remove(const std::string& sql, Uid id) {
+    sqlite3_stmt* stmt;
+    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+    sqlite3_bind_int(stmt, 1, id);
+    bool result = sqlite3_step(stmt) == SQLITE_DONE;
+    sqlite3_finalize(stmt);
+    return result;
+  }
+
+  std::vector<T> queryAll(const std::string& sql, Loader loader) {
+    std::vector<T> results;
+    sqlite3_stmt* stmt;
+    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      results.push_back(loader(stmt));
+    }
+    sqlite3_finalize(stmt);
+    return results;
+  }
+
+  void processAll(const std::string& sql, Loader loader, Processor processor) {
+    sqlite3_stmt* stmt;
+    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      processor(loader(stmt));
+    }
+    sqlite3_finalize(stmt);
+  }
+
+  std::vector<T> queryAll(const std::string& sql, char filterValue, Loader loader) {
+    std::vector<T> results;
+    sqlite3_stmt* stmt;
+    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+    sqlite3_bind_int(stmt, 1, filterValue);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      results.push_back(loader(stmt));
+    }
+    sqlite3_finalize(stmt);
+    return results;
+  }
+
+  T queryOne(const std::string& sql, Uid id, Loader loader) {
+    Serial.printf("[LOG]: Executing queryOne with SQL: %s, id: %d\n", sql.c_str(), id);
+    sqlite3_stmt* stmt;
+    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+      Serial.print("[LOG]: 1");
+    sqlite3_bind_int(stmt, 1, id);
+      Serial.print("[LOG]: 2");
+    T result;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+      Serial.print("[LOG]: 3");
+      result = loader(stmt);
+      Serial.print("[LOG]: Loader execute for model");
+    }
+    sqlite3_finalize(stmt);
+    return result;
+  }
+};
+
+
+class KeyringDao {
+public:
+  bool save(const Keyring& k) {
+    // Lê todos, substitui ou adiciona, salva tudo de novo
+    std::vector<Keyring> all = findAll();
+    bool found = false;
+    for (auto& item : all) {
+      if (item.getUserId() == k.getUserId()) {
+        item = k;
+        found = true;
+        break;
+      }
+    }
+    if (!found) all.push_back(k);
+    return writeAll(all);
+  }
+
+  bool remove(Uid userId) {
+    std::vector<Keyring> all = findAll();
+    all.erase(std::remove_if(all.begin(), all.end(), [userId](const Keyring& k){ return k.getUserId() == userId; }), all.end());
+    return writeAll(all);
+  }
+
+  std::vector<Keyring> findAll() {
+    String content = SpiffsUtil::readFile(KEYRING_FILE);
+    std::vector<Keyring> result;
+    if (content.length() == 0) return result;
+    DynamicJsonDocument doc(4096);
+    deserializeJson(doc, content);
+    for (JsonObject obj : doc.as<JsonArray>()) {
+      Keyring k;
+      k.fromJson(obj);
+      result.push_back(k);
+    }
+    return result;
+  }
+
+  Keyring findByUserId(Uid userId) {
+    for (const auto& k : findAll()) {
+      if (k.getUserId() == userId) return k;
+    }
+    return Keyring();
+  }
+
+  Keyring findByUid(Uid uid) {
+    for (const auto& k : findAll()) {
+      if (k.getUid() == uid) return k;
+    }
+    return Keyring();
+  }
+
+  time_t getLastUpdate() {
+    time_t last = 0;
+    for (const auto& k : findAll()) {
+      if (k.getLastUpdate() > last) last = k.getLastUpdate();
+    }
+    return last;
+  }
+
+private:
+  bool writeAll(const std::vector<Keyring>& all) {
+    DynamicJsonDocument doc(4096);
+    JsonArray arr = doc.to<JsonArray>();
+    for (const auto& k : all) {
+      JsonObject obj = arr.createNestedObject();
+      k.toJson(obj);
+    }
+    String out;
+    serializeJson(doc, out);
+    return SpiffsUtil::writeFile(KEYRING_FILE, out);
+  }
+};
+
+
+class EventDao {
+public:
+  bool save(const Event& event) {
+    std::vector<Event> all = findAll();
+    all.push_back(event);
+    return writeAll(all);
+  }
+
+  std::vector<Event> findAll() {
+    String content = SpiffsUtil::readFile(EVENTS_FILE);
+    std::vector<Event> result;
+    if (content.length() == 0) return result;
+    DynamicJsonDocument doc(4096);
+    deserializeJson(doc, content);
+    for (JsonObject obj : doc.as<JsonArray>()) {
+      Event e;
+      e.fromJson(obj);
+      result.push_back(e);
+    }
+    return result;
+  }
+
+  void removeAll() {
+    SpiffsUtil::writeFile(EVENTS_FILE, "[]");
+  }
+
+private:
+  bool writeAll(const std::vector<Event>& all) {
+    DynamicJsonDocument doc(4096);
+    JsonArray arr = doc.to<JsonArray>();
+    for (const auto& e : all) {
+      JsonObject obj = arr.createNestedObject();
+      e.toJson(obj);
+    }
+    String out;
+    serializeJson(doc, out);
+    return SpiffsUtil::writeFile(EVENTS_FILE, out);
+  }
+};
+
+
+class ScheduleDao {
+public:
+  bool save(const Schedule& schedule) {
+    std::vector<Schedule> all = findAll();
+    bool found = false;
+    for (auto& s : all) {
+      if (s.getId() == schedule.getId()) {
+        s = schedule;
+        found = true;
+        break;
+      }
+    }
+    if (!found) all.push_back(schedule);
+    return writeAll(all);
+  }
+
+  bool remove(Uid id) {
+    std::vector<Schedule> all = findAll();
+    all.erase(std::remove_if(all.begin(), all.end(), [id](const Schedule& s){ return s.getId() == id; }), all.end());
+    return writeAll(all);
+  }
+
+  std::vector<Schedule> findAll() {
+    String content = SpiffsUtil::readFile(SCHEDULES_FILE);
+    std::vector<Schedule> result;
+    if (content.length() == 0) return result;
+    DynamicJsonDocument doc(4096);
+    deserializeJson(doc, content);
+    for (JsonObject obj : doc.as<JsonArray>()) {
+      Schedule s;
+      s.fromJson(obj);
+      result.push_back(s);
+    }
+    return result;
+  }
+
+  Schedule findById(Uid id) {
+    for (const auto& s : findAll()) {
+      if (s.getId() == id) return s;
+    }
+    return Schedule();
+  }
+
+  std::vector<Schedule> findByUserType(UserType userType) {
+    std::vector<Schedule> result;
+    for (const auto& s : findAll()) {
+      if (s.getUserType() == userType) result.push_back(s);
+    }
+    return result;
+  }
+
+  bool hasSchedule(UserType userType, time_t /*time*/) {
+    for (const auto& s : findAll()) {
+      if (s.getUserType() == userType) return true;
+    }
+    return false;
+  }
+
+  time_t getLastUpdate() {
+    time_t last = 0;
+    for (const auto& s : findAll()) {
+      if (s.getLastUpdate() > last) last = s.getLastUpdate();
+    }
+    return last;
+  }
+
+private:
+  bool writeAll(const std::vector<Schedule>& all) {
+    DynamicJsonDocument doc(4096);
+    JsonArray arr = doc.to<JsonArray>();
+    for (const auto& s : all) {
+      JsonObject obj = arr.createNestedObject();
+      s.toJson(obj);
+    }
+    String out;
+    serializeJson(doc, out);
+    return SpiffsUtil::writeFile(SCHEDULES_FILE, out);
+  }
+};
+
+
+
+class ConfigDao {
+public:
+  bool save(const Config& config) {
+    DynamicJsonDocument doc(1024);
+    config.toJson(doc.to<JsonObject>());
+    String out;
+    serializeJson(doc, out);
+    return SpiffsUtil::writeFile(CONFIG_FILE, out);
+  }
+
+  Config retrieve() {
+    String content = SpiffsUtil::readFile(CONFIG_FILE);
+    if (content.length() == 0) return Config();
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, content);
+    Config config;
+    config.fromJson(doc.as<JsonObject>());
+    return config;
+  }
+};
+
+#endif

@@ -35,6 +35,7 @@ public:
   const uint8_t speakerPin;
   const uint8_t doorSensorPin;
   const uint8_t lightSensorPin;
+  const uint8_t readerRxPin;
 
   BoardModel(
       uint8_t lockRelayPin,
@@ -43,29 +44,25 @@ public:
       uint8_t pushButtonCommandPin,
       uint8_t speakerPin,
       uint8_t doorSensorPin,
-      uint8_t lightSensorPin) : lockRelayPin(lockRelayPin),
+      uint8_t lightSensorPin,
+      uint8_t readerRxPin) : lockRelayPin(lockRelayPin),
                             activityLedPin(activityLedPin),
                             pushButtonProgramPin(pushButtonProgramPin),
                             pushButtonCommandPin(pushButtonCommandPin),
                             speakerPin(speakerPin),
                             doorSensorPin(doorSensorPin),
-                            lightSensorPin(lightSensorPin) {}
+                            lightSensorPin(lightSensorPin),
+                            readerRxPin(readerRxPin) {}
 
   void startup()
   {
+    // gpio_install_isr_service(0);
+
     GPIO::setup(this->lockRelayPin, OUTPUT);
     GPIO::turnOff(this->lockRelayPin);
 
     GPIO::setup(this->activityLedPin, OUTPUT);
     GPIO::turnOff(this->activityLedPin);
-    if (this->activityLedPin == 2)
-    {
-      uint8_t channel = 1;
-      uint32_t frequency = 1000;
-      uint8_t resolution = 10;
-      ledcAttachPin(this->activityLedPin, channel);
-      ledcSetup(channel, frequency, resolution);
-    }
 
     GPIO::setup(this->pushButtonProgramPin, INPUT_PULLUP);
     GPIO::setup(this->pushButtonCommandPin, INPUT_PULLUP);
@@ -78,6 +75,9 @@ public:
 
     if (this->lightSensorPin)
       GPIO::setup(this->lightSensorPin, INPUT_PULLUP);
+
+    if (this->readerRxPin)
+      GPIO::setup(this->readerRxPin, INPUT);
   }
 
   void setCommandButtonCallback(void (*cb)())
@@ -107,7 +107,7 @@ public:
     if (channel > 0)
     {
       ledcSetup(channel, frequency, resolution);
-      ledcWriteNote(channel, NOTE_Cs, frequency);
+      ledcWriteNote(channel, NOTE_A, 3 /*OCTAVE*/);
       delay(delay_time);
     }
   }
@@ -144,21 +144,10 @@ public:
 
   void blinkActivityLed()
   {
-    if (this->activityLedPin == 2)
-    {
-      uint8_t channel = 1;
-      ledcWrite(channel, 1000);
-      delay(100);
-      ledcWrite(channel, 0);
-      delay(50);
-    }
-    else
-    {
       GPIO::turnOn(this->activityLedPin);
-      delay(100);
+      delay(30);
       GPIO::turnOff(this->activityLedPin);
-      delay(50);
-    }
+      delay(90);    
   }
 
   void toggleLocked() { this->locked = !this->locked; }
@@ -168,23 +157,18 @@ public:
   bool isDoorOpened() { return (this->doorSensorPin > 0) && GPIO::input(this->doorSensorPin); }
   bool isCommandButtonPushed() { return !GPIO::input(this->pushButtonCommandPin); }
   bool isProgramButtonPushed() { return !GPIO::input(this->pushButtonProgramPin); }
-};
-
-static BoardModel *getBoardModel(byte version)
-{
+  
+  static BoardModel *getBoardModel(byte version)
+  {
     BoardModel* boardModel;
     switch(version){
-      case 1 : boardModel = new BoardModel(23,24,25,17, 0, 0, 0);break;
-      case 2 : boardModel = new BoardModel(23,24,25,17, 0, 0, 0);break;
-      case 3 : boardModel = new BoardModel(23,25,16,12, 0, 0, 0);break;
-      case 4 : boardModel = new BoardModel(23,24,16,25,12, 0, 0);break;
-      case 5 : boardModel = new BoardModel(24,23,12,25,18,16, 0);break;
-      case 6 : boardModel = new BoardModel(21,16,18,23,12,25,24);break;
+      case 1 : boardModel = new BoardModel(13, 2,18, 4,15,17, 5, 3);break;
+      case 2 : boardModel = new BoardModel( 5, 0, 6, 2, 1, 3, 4,20);break;
       default: throw "Version not suportted yet!";
     }
-
-  boardModel->startup();
-  return boardModel;
-}
+    boardModel->startup();
+    return boardModel;
+  }
+};
 
 #endif

@@ -1,0 +1,506 @@
+#ifndef DAO_SQLITE3
+#define DAO_SQLITE3
+
+#include <Arduino.h>
+#include <Preferences.h>
+#include <vector>
+#include <functional>
+#include <SPIFFS.h>
+
+#include "models.cpp"
+
+#define UID_TO_KEY(uid) char key[4]; snprintf(key, sizeof(key), "%u", (uid));
+
+template <typename T>
+class DaoGeneric {
+  Preferences prefs;
+public:
+  DaoGeneric(const std::string& tablename){
+    this->this->prefs.begin(tablename);
+  }
+
+  ~DaoGeneric() {
+    this->prefs.end();
+  }
+
+  bool exists(Uid uid) {
+    return this->prefs.isKey(UID_TO_KEY(uid));
+  }
+
+  bool putString(Uid uid, const String& value) {
+    return !this->prefs.putString(UID_TO_KEY(uid), value);
+  }
+
+  String getString(Uid uid, const String& def = "") {
+    return this->prefs.getString(UID_TO_KEY(uid), def);
+  }
+
+  void remove(Uid uid) {
+    this->prefs.remove(UID_TO_KEY(uid));
+  }
+
+  void clear() {
+    this->prefs.clear();
+  }
+};
+
+
+class KeyringDao: public DaoGeneric<Keyring> {
+public:
+
+  KeyringDao(): DaoGeneric("/spiffs/keyrings") { }
+ 
+  bool save(const Keyring& k) {
+    return this->putString(k.getUid(), k.toJSON());
+  }
+
+  bool remove(Uid userId) {
+    PrefUtil::begin();
+    String key = String("keyring_") + userId;
+    PrefUtil::remove(key.c_str());
+    PrefUtil::end();
+    return true;
+  }
+
+  std::vector<Keyring> findAll() {
+    PrefUtil::begin();
+    std::vector<Keyring> result;
+    // Não há método direto para listar todas as chaves, então use um range conhecido
+    for (int i = 0; i < 100; ++i) {
+      String key = String("keyring_") + i;
+      String value = PrefUtil::getString(key.c_str());
+      if (value.length() > 0) {
+        Keyring k;
+        k.fromString(value); // Supondo que Keyring tenha fromString
+        result.push_back(k);
+      }
+    }
+    PrefUtil::end();
+    return result;
+  }
+
+  Keyring findByUserId(Uid userId) {
+    PrefUtil::begin();
+    String key = String("keyring_") + userId;
+    String value = PrefUtil::getString(key.c_str());
+    PrefUtil::end();
+    Keyring k;
+    if (value.length() > 0) k.fromString(value);
+    return k;
+  }
+
+  time_t getLastUpdate() {
+    time_t last = 0;
+    for (const auto& k : findAll()) {
+      if (k.getLastUpdate() > last) last = k.getLastUpdate();
+    }
+    return last;
+  }
+};
+
+
+class EventDao {
+public:
+  bool save(const Event& e) {
+    PrefUtil::begin();
+    // Gera uma chave única baseada no tempo ou contador
+    String key = String("event_") + e.getTime();
+    String value;
+    e.toString(value); // Supondo que Event tenha toString/parseString
+    PrefUtil::putString(key.c_str(), value);
+    PrefUtil::end();
+    return true;
+  }
+
+  std::vector<Event> findAll() {
+    PrefUtil::begin();
+    std::vector<Event> result;
+    for (int i = 0; i < 100; ++i) {
+      String key = String("event_") + i;
+      String value = PrefUtil::getString(key.c_str());
+      if (value.length() > 0) {
+        Event e;
+        e.fromString(value);
+        result.push_back(e);
+      }
+    }
+    PrefUtil::end();
+    return result;
+  }
+
+  void removeAll() {
+    PrefUtil::begin();
+    for (int i = 0; i < 100; ++i) {
+      String key = String("event_") + i;
+      PrefUtil::remove(key.c_str());
+    }
+    PrefUtil::end();
+  }
+};
+
+
+class ScheduleDao {
+public:
+  bool save(const Schedule& s) {
+    PrefUtil::begin();
+    String key = String("schedule_") + s.getId();
+    String value;
+    s.toString(value); // Supondo que Schedule tenha toString/parseString
+    PrefUtil::putString(key.c_str(), value);
+    PrefUtil::end();
+    return true;
+  }
+
+  bool remove(Uid id) {
+    PrefUtil::begin();
+    String key = String("schedule_") + id;
+    PrefUtil::remove(key.c_str());
+    PrefUtil::end();
+    return true;
+  }
+
+  std::vector<Schedule> findAll() {
+    PrefUtil::begin();
+    std::vector<Schedule> result;
+    for (int i = 0; i < 100; ++i) {
+      String key = String("schedule_") + i;
+      String value = PrefUtil::getString(key.c_str());
+      if (value.length() > 0) {
+        Schedule s;
+        s.fromString(value);
+        result.push_back(s);
+      }
+    }
+    PrefUtil::end();
+    return result;
+  }
+
+  Schedule findById(Uid id) {
+    PrefUtil::begin();
+    String key = String("schedule_") + id;
+    String value = PrefUtil::getString(key.c_str());
+    PrefUtil::end();
+    Schedule s;
+    if (value.length() > 0) s.fromString(value);
+    return s;
+  }
+
+  std::vector<Schedule> findByUserType(UserType userType) {
+    std::vector<Schedule> result;
+    for (const auto& s : findAll()) {
+      if (s.getUserType() == userType) result.push_back(s);
+    }
+    return result;
+  }
+
+  bool hasSchedule(UserType userType, time_t /*time*/) {
+    for (const auto& s : findAll()) {
+      if (s.getUserType() == userType) return true;
+    }
+    return false;
+  }
+
+  time_t getLastUpdate() {
+    time_t last = 0;
+    for (const auto& s : findAll()) {
+      if (s.getLastUpdate() > last) last = s.getLastUpdate();
+    }
+    return last;
+  }
+};
+
+
+
+class ConfigDao {
+public:
+  bool save(const Config& config) {
+    PrefUtil::begin();
+    String value;
+    config.toString(value); // Supondo que Config tenha toString/parseString
+    PrefUtil::putString("config", value);
+    PrefUtil::end();
+    return true;
+  }
+
+  Config retrieve() {
+    PrefUtil::begin();
+    String value = PrefUtil::getString("config");
+    PrefUtil::end();
+    Config config;
+    if (value.length() > 0) config.fromString(value);
+    return config;
+  }
+};
+
+#endif
+#ifndef DAO_SQLITE3
+#define DAO_SQLITE3
+
+#include <Arduino.h>
+#include <Preferences.h>
+#include <vector>
+#include <functional>
+#include <SPIFFS.h>
+
+#include "models.cpp"
+
+template <typename T>
+class DaoGeneric {
+  Preferences prefs;
+public:
+  DaoGeneric(const std::string& tablename){
+    this->this->prefs.begin(tablename);
+  }
+  ~DaoGeneric() {
+    this->prefs.end();
+  }
+
+  void putString(const char* key, const String& value) {
+    this->prefs.putString(key, value);
+  }
+  String getString(const char* key, const String& def = "") {
+    return this->prefs.getString(key, def);
+  }
+
+  void putUInt(const char* key, uint32_t value) {
+    this->prefs.putUInt(key, value);
+  }
+  uint32_t getUInt(const char* key, uint32_t def = 0) {
+    return this->prefs.getUInt(key, def);
+  }
+
+  void remove(const char* key) {
+    this->prefs.remove(key);
+  }
+
+  void processAll(const std::string& sql, Loader loader, Processor processor) {
+    sqlite3_stmt* stmt;
+    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      processor(loader(stmt));
+    }
+    sqlite3_finalize(stmt);
+  }
+
+  std::vector<T> queryAll(const std::string& sql, char filterValue, Loader loader) {
+    std::vector<T> results;
+    sqlite3_stmt* stmt;
+    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+    sqlite3_bind_int(stmt, 1, filterValue);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+      results.push_back(loader(stmt));
+    }
+    sqlite3_finalize(stmt);
+    return results;
+  }
+
+  T queryOne(const std::string& sql, Uid id, Loader loader) {
+    Serial.printf("[LOG]: Executing queryOne with SQL: %s, id: %d\n", sql.c_str(), id);
+    sqlite3_stmt* stmt;
+    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+      Serial.print("[LOG]: 1");
+    sqlite3_bind_int(stmt, 1, id);
+      Serial.print("[LOG]: 2");
+    T result;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+      Serial.print("[LOG]: 3");
+      result = loader(stmt);
+      Serial.print("[LOG]: Loader execute for model");
+    }
+    sqlite3_finalize(stmt);
+    return result;
+  }
+};
+
+
+class KeyringDao {
+public:
+  bool save(const Keyring& k) {
+    PrefUtil::begin();
+    String key = String("keyring_") + k.getUserId();
+    String value;
+    k.toString(value); // Supondo que Keyring tenha toString/parseString
+    PrefUtil::putString(key.c_str(), value);
+    PrefUtil::end();
+    return true;
+  }
+
+  bool remove(Uid userId) {
+    PrefUtil::begin();
+    String key = String("keyring_") + userId;
+    PrefUtil::remove(key.c_str());
+    PrefUtil::end();
+    return true;
+  }
+
+  std::vector<Keyring> findAll() {
+    PrefUtil::begin();
+    std::vector<Keyring> result;
+    // Não há método direto para listar todas as chaves, então use um range conhecido
+    for (int i = 0; i < 100; ++i) {
+      String key = String("keyring_") + i;
+      String value = PrefUtil::getString(key.c_str());
+      if (value.length() > 0) {
+        Keyring k;
+        k.fromString(value); // Supondo que Keyring tenha fromString
+        result.push_back(k);
+      }
+    }
+    PrefUtil::end();
+    return result;
+  }
+
+  Keyring findByUserId(Uid userId) {
+    PrefUtil::begin();
+    String key = String("keyring_") + userId;
+    String value = PrefUtil::getString(key.c_str());
+    PrefUtil::end();
+    Keyring k;
+    if (value.length() > 0) k.fromString(value);
+    return k;
+  }
+
+  time_t getLastUpdate() {
+    time_t last = 0;
+    for (const auto& k : findAll()) {
+      if (k.getLastUpdate() > last) last = k.getLastUpdate();
+    }
+    return last;
+  }
+};
+
+
+class EventDao {
+public:
+  bool save(const Event& e) {
+    PrefUtil::begin();
+    // Gera uma chave única baseada no tempo ou contador
+    String key = String("event_") + e.getTime();
+    String value;
+    e.toString(value); // Supondo que Event tenha toString/parseString
+    PrefUtil::putString(key.c_str(), value);
+    PrefUtil::end();
+    return true;
+  }
+
+  std::vector<Event> findAll() {
+    PrefUtil::begin();
+    std::vector<Event> result;
+    for (int i = 0; i < 100; ++i) {
+      String key = String("event_") + i;
+      String value = PrefUtil::getString(key.c_str());
+      if (value.length() > 0) {
+        Event e;
+        e.fromString(value);
+        result.push_back(e);
+      }
+    }
+    PrefUtil::end();
+    return result;
+  }
+
+  void removeAll() {
+    PrefUtil::begin();
+    for (int i = 0; i < 100; ++i) {
+      String key = String("event_") + i;
+      PrefUtil::remove(key.c_str());
+    }
+    PrefUtil::end();
+  }
+};
+
+
+class ScheduleDao {
+public:
+  bool save(const Schedule& s) {
+    PrefUtil::begin();
+    String key = String("schedule_") + s.getId();
+    String value;
+    s.toString(value); // Supondo que Schedule tenha toString/parseString
+    PrefUtil::putString(key.c_str(), value);
+    PrefUtil::end();
+    return true;
+  }
+
+  bool remove(Uid id) {
+    PrefUtil::begin();
+    String key = String("schedule_") + id;
+    PrefUtil::remove(key.c_str());
+    PrefUtil::end();
+    return true;
+  }
+
+  std::vector<Schedule> findAll() {
+    PrefUtil::begin();
+    std::vector<Schedule> result;
+    for (int i = 0; i < 100; ++i) {
+      String key = String("schedule_") + i;
+      String value = PrefUtil::getString(key.c_str());
+      if (value.length() > 0) {
+        Schedule s;
+        s.fromString(value);
+        result.push_back(s);
+      }
+    }
+    PrefUtil::end();
+    return result;
+  }
+
+  Schedule findById(Uid id) {
+    PrefUtil::begin();
+    String key = String("schedule_") + id;
+    String value = PrefUtil::getString(key.c_str());
+    PrefUtil::end();
+    Schedule s;
+    if (value.length() > 0) s.fromString(value);
+    return s;
+  }
+
+  std::vector<Schedule> findByUserType(UserType userType) {
+    std::vector<Schedule> result;
+    for (const auto& s : findAll()) {
+      if (s.getUserType() == userType) result.push_back(s);
+    }
+    return result;
+  }
+
+  bool hasSchedule(UserType userType, time_t /*time*/) {
+    for (const auto& s : findAll()) {
+      if (s.getUserType() == userType) return true;
+    }
+    return false;
+  }
+
+  time_t getLastUpdate() {
+    time_t last = 0;
+    for (const auto& s : findAll()) {
+      if (s.getLastUpdate() > last) last = s.getLastUpdate();
+    }
+    return last;
+  }
+};
+
+
+
+class ConfigDao {
+public:
+  bool save(const Config& config) {
+    PrefUtil::begin();
+    String value;
+    config.toString(value); // Supondo que Config tenha toString/parseString
+    PrefUtil::putString("config", value);
+    PrefUtil::end();
+    return true;
+  }
+
+  Config retrieve() {
+    PrefUtil::begin();
+    String value = PrefUtil::getString("config");
+    PrefUtil::end();
+    Config config;
+    if (value.length() > 0) config.fromString(value);
+    return config;
+  }
+};
+
+#endif

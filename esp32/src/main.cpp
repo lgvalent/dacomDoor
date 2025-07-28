@@ -3,6 +3,7 @@
 #include "app-board.cpp"
 #include "doorlock.cpp"
 #include "config.cpp"
+#include "reader.cpp"
 
 time_t lastCommandButtonTime = 0;
 time_t lastDoorSensorTime = 0;
@@ -12,6 +13,8 @@ Doorlock *doorlock;
 BoardModel *boardModel;
 AppTasks *appTasks;
 AppBoard *appBoard;
+AppConfig *appConfig;
+Reader *reader;
 
 // Task wrappers for lambdas
 struct TaskWrapper {
@@ -49,17 +52,25 @@ void commandButtonCallback()
 void setup()
 {
   Serial.begin(115200);
-  delay(1000); // Give time for serial monitor
+  Serial.println("Booting...");
 
-  startupConfig();
+  appConfig = new AppConfig();
+  appConfig->startup();
 
   doorlock = new Doorlock();
-  boardModel = getBoardModel(config.boardVersion);
-  appBoard = new AppBoard(boardModel, doorlock);
-  appTasks = new AppTasks();
+  boardModel = BoardModel::getBoardModel(appConfig->config.boardVersion);
 
+  reader = new Reader(boardModel);
+  reader->startup();
+
+  appBoard = new AppBoard(appConfig, boardModel, doorlock, reader);
+  appTasks = new AppTasks(appConfig);
+  
   boardModel->serDoorSensorCallback(&doorSensorCallback);
   boardModel->setCommandButtonCallback(&commandButtonCallback);
+
+  appBoard->startup();
+  appTasks->startup();
 
   // Create task for appBoard->run()
   static TaskWrapper *boardTask = new TaskWrapper{
@@ -70,6 +81,7 @@ void setup()
       }
     }
   };
+  Serial.println("Creating multitask environment...");
 
   xTaskCreatePinnedToCore(
     TaskWrapper::run,
@@ -92,17 +104,24 @@ void setup()
   };
 
   xTaskCreatePinnedToCore(
-    TaskWrapper::run,
-    "AppTasksTask",
-    4096,
-    taskRunner,
-    1,
-    nullptr,
-    1  // Core 1
-  );
+      TaskWrapper::run,
+      "AppTasksTask",
+      4096,
+      taskRunner,
+      1,
+      nullptr,
+      1  // Core 1
+    );
+  esp_sleep_enable_uart_wakeup(reader->getUartNumber()); // Enable UART wakeup for board version 6
+  esp_sleep_enable_timer_wakeup(5 * 60 * 1000000); // Convert seconds to microseconds
+  Serial.println("Setup finished...");
+ 
+  /** For tests only */
+  appConfig->config.updateDelay = INT_MAX; 
+  
 }
 
 void loop()
 {
-  // Nothing to do here. Everything runs in tasks.
+    // Nothing to do here. Everything runs in tasks.
 }

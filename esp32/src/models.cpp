@@ -88,7 +88,6 @@ public:
   }
 
   String toJSON() const{ return Event::toJSON(this->uid, this->time, this->eventType); }
-  String toJSON_() const{ return Event::toJSON(this->uid, this->time, this->eventType); }
 };
 
 class Keyring : public ModelBase
@@ -258,41 +257,69 @@ public:
   String toJSON() const { return Schedule::toJSON(this->id, this->dayOfWeek, this->beginTime, this->endTime, this->userType, this->lastUpdate); }
 };
 
-
 class Config {
   public:
   inline static String CONFIG_PASSWORD =  "CONFIG_PASSWORD";
   inline static String BOARD_VERSION =  "BOARD_VERSION";
   inline static String SERVER_URL =  "SERVER_URL";
   inline static String ROOM_NAME =  "ROOM_NAME";
+  inline static String LAST_UPDATE =  "LAST_UPDATE";
   inline static String UPDATE_DELAY =  "UPDATE_DELAY";
   inline static String RELAY_DELAY =  "RELAY_DELAY";
   inline static String DOOR_OPENED_ALERT_DELAY =  "DOOR_OPENED_ALERT_DELAY";
   inline static String WIFI_SSID =  "WIFI_SSID";
   inline static String WIFI_PASSWORD =  "WIFI_PASSWORD";
+  inline static String GMT_ZONE =  "GMT_ZONE";
 
-  int boardVersion = 6;
+  int boardVersion = 1;
   String configPassword = "admin";
-  String serverURL = "http://localhost:3430";
+  String serverURL = "http://dacomdoor.dacom:5000";
   String roomName = "CAFE";
-  String fakeLastUpdate = "2001-01-01 00:00:00";
-  int updateDelay = 60;                  // seconds
+  time_t lastUpdate = 0;
+  int updateDelay = 10;                  // seconds
   double relayDelay = 0.1;               // seconds (fractional)
   int doorOpenedAlertDelay = 30;         // seconds
-  String wifiSSID = "wifi-name";
-  String wifiPassword = "wifi-password";
+  String wifiSSID = "Jesus";
+  String wifiPassword = "1593578520";
+  int gmtZone = -3;                      // GMT-3 Brasília
 
+  static String JSON_TEMPLATE() {
+    return "{\"boardVersion\":\"$1\",\"configPassword\":$2,\"serverURL\":\"$3\",\"roomName\":\"$4\",\"lastUpdate\":$5,\"updateDelay\":$6,\"relayDelay\":$7,\"doorOpenedAlertDelay\":$8,\"wifiSSID\":\"$9\",\"wifiPassword\":\"$10\",\"gmtZone\":\"$11\"}";
+  }
+  
   void applyConfig(const String& key, const String& value) {
    if (key == Config::CONFIG_PASSWORD) this->configPassword = value;
    else if (key == Config::BOARD_VERSION) this->boardVersion = value.toInt();
    else if (key == Config::SERVER_URL) this->serverURL = value;
    else if (key == Config::ROOM_NAME) this->roomName = value;
+   else if (key == Config::LAST_UPDATE) this->lastUpdate = value.toInt();
    else if (key == Config::UPDATE_DELAY) this->updateDelay = value.toInt();
-   else if (key == Config::RELAY_DELAY) this->relayDelay = value.toInt();
+   else if (key == Config::RELAY_DELAY) this->relayDelay = value.toDouble();
    else if (key == Config::DOOR_OPENED_ALERT_DELAY) this->doorOpenedAlertDelay = value.toInt();
    else if (key == Config::WIFI_SSID) this->wifiSSID = value;
    else if (key == Config::WIFI_PASSWORD) this->wifiPassword = value;
+   else if (key == Config::GMT_ZONE) this->gmtZone = value.toInt();
+   else {
+     //TODO Show in log this exception
+     throw std::exception();
+   }
  }
+  static String toJSON(const Config *config) {
+    String json = Config::JSON_TEMPLATE();
+    json.replace("$1", String(config->boardVersion));
+    json.replace("$2", config->configPassword);
+    json.replace("$3", config->serverURL);
+    json.replace("$4", config->roomName);
+    json.replace("$5", String(config->lastUpdate));
+    json.replace("$6", String(config->updateDelay));
+    json.replace("$7", String(config->relayDelay));
+    json.replace("$8", String(config->doorOpenedAlertDelay));
+    json.replace("$9", config->wifiSSID);
+    json.replace("$10", config->wifiPassword);
+    json.replace("$11", String(config->gmtZone));
+    return json;
+  }
+  String toJSON() const { return Config::toJSON(this); }
 };
 
 

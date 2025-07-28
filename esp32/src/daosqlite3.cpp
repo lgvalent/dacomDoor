@@ -5,6 +5,7 @@
 #include <sqlite3.h>
 #include <vector>
 #include <functional>
+#include <SPIFFS.h>
 
 #include "models.cpp"
 
@@ -19,13 +20,22 @@ private:
     sqlite3* db;
 
     DBManager() {
-        sqlite3_initialize();
-        if(sqlite3_open(FILE_NAME, &db)){
-          Serial.printf("[ERROR]: Can't open database: %s\n", sqlite3_errmsg(db));
+      if (!SPIFFS.begin(true)) {
+        Serial.println("[SPIFFS] Erro ao montar SPIFFS! Formatando...");
+        SPIFFS.format();
+        if (!SPIFFS.begin()) {
+          Serial.println("[SPIFFS] Não pôde ser montado nem formatado!");
+          // Trate erro crítico aqui
         }
-      
+      }
+      Serial.printf("[SPIFFS] Total bytes: %d, Usados: %d, Livres: %d\n", SPIFFS.totalBytes(), SPIFFS.usedBytes(), SPIFFS.totalBytes() - SPIFFS.usedBytes());
+      sqlite3_initialize();
+      if(sqlite3_open(FILE_NAME, &db)){
+        Serial.printf("[ERROR]: Can't open database: %s\n", sqlite3_errmsg(db));
+      }
     }
     ~DBManager() {
+        Serial.println("[SQLITE3] Closing database...");
         sqlite3_close(db);
     }
 public:
@@ -57,9 +67,12 @@ public:
   }
 
   bool executeSQL(const std::string& sql) {
+    Serial.printf("Memória livre (heap): %u bytes\n", ESP.getFreeHeap());
+    Serial.printf("[LOG]: Executing SQL: %s\n", sql.c_str());
     char* errMsg = nullptr;
     int rc = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg);
     if (rc != SQLITE_OK) {
+      Serial.printf("[ERROR]: SQL error: %s\n", errMsg);
       sqlite3_free(errMsg);
       return false;
     }
@@ -67,19 +80,27 @@ public:
   }
 
   bool insert(const std::string& sql, const T& model, Binder binder) {
+    Serial.printf("Memória livre (heap): %u bytes\n", ESP.getFreeHeap());
+    Serial.printf("[LOG]: Insert SQL: %s\n", sql.c_str());
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) return false;
     binder(stmt, model);
+    Serial.printf("[LOG]: Binder: %s\n", model.toJSON().c_str());
     bool result = sqlite3_step(stmt) == SQLITE_DONE;
+    if(!result) {
+      Serial.printf("[ERROR]: Failed to execute statement: %s\n", sqlite3_errmsg(db));
+    }
     sqlite3_finalize(stmt);
     return result;
   }
 
   bool update(const std::string& sql, const T& model, Binder binder) {
+    Serial.printf("[LOG]: Update SQL: %s\n", sql.c_str());
     return insert(sql, model, binder); // Same pattern
   }
 
   bool remove(const std::string& sql, Uid id) {
+    Serial.printf("[LOG]: Remove SQL: %s\n", sql.c_str());
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
     sqlite3_bind_int(stmt, 1, id);
@@ -89,6 +110,7 @@ public:
   }
 
   std::vector<T> queryAll(const std::string& sql, Loader loader) {
+    Serial.printf("[LOG]: QueryAll SQL: %s\n", sql.c_str());
     std::vector<T> results;
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
@@ -100,6 +122,7 @@ public:
   }
 
   void processAll(const std::string& sql, Loader loader, Processor processor) {
+    Serial.printf("[LOG]: ProcessAll SQL: %s\n", sql.c_str());
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
     while (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -109,6 +132,7 @@ public:
   }
 
   std::vector<T> queryAll(const std::string& sql, char filterValue, Loader loader) {
+    Serial.printf("[LOG]: QueryAll filtered SQL: %s\n", sql.c_str());
     std::vector<T> results;
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
@@ -121,17 +145,18 @@ public:
   }
 
   T queryOne(const std::string& sql, Uid id, Loader loader) {
+    Serial.printf("[LOG]: Executing queryOne with SQL: %s, id: %d\n", sql.c_str(), id);
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
     sqlite3_bind_int(stmt, 1, id);
     T result;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
       result = loader(stmt);
+      Serial.println("[LOG]: Loader execute for the found model");
     }
     sqlite3_finalize(stmt);
     return result;
   }
-
 };
 
 class KeyringDao {
@@ -220,77 +245,81 @@ public:
       }
     );
   }
-
-  time_t getLastUpdate(){
-    Keyring keyring = dao.queryOne(
-      "SELECT lastUpdate FROM keyrings WHERE 0=? ORDER BY lastUpdate DESC LIMIT 1;",
-      0,
-      [](sqlite3_stmt* stmt) {
-        time_t last = sqlite3_column_int64(stmt, 0);
-        Keyring model;
-        model.build(0, 0, UserType::PROFESSOR, last);
-        return model;
-      }
-    );
-
-    return keyring.getLastUpdate();
-  }
 };
 
 class EventDao {
-  DaoGeneric<Event> dao;
-
+  std::vector<Event> events;
 public:
-  EventDao() : dao("events") {
-    dao.executeSQL("CREATE TABLE IF NOT EXISTS events ("
-                   "uid INTEGER, "
-                   "time INTEGER, "
-                   "eventType INTEGER;");
-  }
+  EventDao() {}
 
   bool save(const Event& event) {
-    return dao.insert(
-      "INSERT INTO events (uid, time, eventType) VALUES (?, ?, ?);",
-      event,
-      [](sqlite3_stmt* stmt, const Event& m) {
-        sqlite3_bind_int(stmt, 1, m.getUid());
-        sqlite3_bind_int(stmt, 2, m.getTime());
-        sqlite3_bind_int(stmt, 3, static_cast<char>(m.getEventType()));
-      }
-    );
+    events.push_back(event);
+    return true;
   }
 
   std::vector<Event> findAll() {
-    return dao.queryAll(
-      "SELECT uid, time, eventType FROM events;",
-      [](sqlite3_stmt* stmt) {
-        Uid uid = static_cast<Uid>(sqlite3_column_int(stmt, 0));
-        time_t time = sqlite3_column_int64(stmt, 1);
-        EventType type = static_cast<EventType>(sqlite3_column_int(stmt, 2));
-        Event model;
-        model.build(uid, time, type);
-        return model;
-      }
-    );
+    return events;
   }
 
-  void removeAll(){
-    dao.remove("DELETE FROM events WHERE 0=?", 0);
-  }
-
-  void process(DaoGeneric<Event>::Processor processor) {
-    dao.processAll("SELECT uid, time, eventType FROM events;", 
-      [](sqlite3_stmt* stmt) {
-        Uid uid = static_cast<Uid>(sqlite3_column_int(stmt, 0));
-        time_t time = sqlite3_column_int64(stmt, 1);
-        EventType type = static_cast<EventType>(sqlite3_column_int(stmt, 2));
-        Event model;
-        model.build(uid, time, type);
-        return model;
-      }
-        ,processor);
+  void removeAll() {
+    events.clear();
   }
 };
+
+// class EventDao {
+//   DaoGeneric<Event> dao;
+
+// public:
+//   EventDao() : dao("events") {
+//     dao.executeSQL("CREATE TABLE IF NOT EXISTS events ("
+//                    "uid INTEGER, "
+//                    "time INTEGER, "
+//                    "eventType INTEGER);");
+//   }
+
+//   bool save(const Event& event) {
+//     return dao.insert(
+//       "INSERT INTO events (uid, time, eventType) VALUES (?, ?, ?);",
+//       event,
+//       [](sqlite3_stmt* stmt, const Event& m) {
+//         sqlite3_bind_int(stmt, 1, m.getUid());
+//         sqlite3_bind_int(stmt, 2, m.getTime());
+//         sqlite3_bind_int(stmt, 3, static_cast<char>(m.getEventType()));
+//       }
+//     );
+//   }
+
+//   std::vector<Event> findAll() {
+//     return dao.queryAll(
+//       "SELECT uid, time, eventType FROM events;",
+//       [](sqlite3_stmt* stmt) {
+//         Uid uid = static_cast<Uid>(sqlite3_column_int(stmt, 0));
+//         time_t time = sqlite3_column_int64(stmt, 1);
+//         EventType type = static_cast<EventType>(sqlite3_column_int(stmt, 2));
+//         Event model;
+//         model.build(uid, time, type);
+//         return model;
+//       }
+//     );
+//   }
+
+//   void removeAll(){
+//     dao.remove("DELETE FROM events WHERE 0=?", 0);
+//   }
+
+//   void process(DaoGeneric<Event>::Processor processor) {
+//     dao.processAll("SELECT uid, time, eventType FROM events;", 
+//       [](sqlite3_stmt* stmt) {
+//         Uid uid = static_cast<Uid>(sqlite3_column_int(stmt, 0));
+//         time_t time = sqlite3_column_int64(stmt, 1);
+//         EventType type = static_cast<EventType>(sqlite3_column_int(stmt, 2));
+//         Event model;
+//         model.build(uid, time, type);
+//         return model;
+//       }
+//         ,processor);
+//   }
+// };
 
 class ScheduleDao {
   DaoGeneric<Schedule> dao;
@@ -403,22 +432,7 @@ public:
         return model;
       }
     );
-    return schedule.getId() > 0;
-  }
-
-  time_t getLastUpdate(){
-    Schedule schedule = dao.queryOne(
-      "SELECT lastUpdate FROM events WHERE 0=? ORDER BY lastUpdate DESC LIMIT 1;",
-      0,
-      [](sqlite3_stmt* stmt) {
-        time_t last = sqlite3_column_int64(stmt, 0);
-        Schedule model;
-        model.build(0, DayOfWeek::SUNDAY, 0, 0, UserType::PROFESSOR, last);
-        return model;
-      }
-    );
-
-    return schedule.getLastUpdate();
+    return schedule.getId() == 0;
   }
 };
 
@@ -444,43 +458,75 @@ public:
   bool save(const Config& config) {
     return dao.insert(
       "INSERT OR REPLACE INTO board_config ("
-      "id, boardVersion, serverURL, roomName, fakeLastUpdate,"
+      "id, boardVersion, configPassword, serverURL, roomName, fakeLastUpdate,"
       "updateDelay, relayDelay, doorOpenedAlertDelay, wifiSSID, wifiPassword"
       ") VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
       config,
       [config](sqlite3_stmt* stmt, const Config& m) {
     sqlite3_bind_int(stmt, 1, config.boardVersion);
-    sqlite3_bind_text(stmt, 2, config.serverURL.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 3, config.roomName.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 4, config.fakeLastUpdate.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 5, config.updateDelay);
-    sqlite3_bind_double(stmt, 6, config.relayDelay);
-    sqlite3_bind_int(stmt, 7, config.doorOpenedAlertDelay);
-    sqlite3_bind_text(stmt, 8, config.wifiSSID.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 9, config.wifiPassword.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, config.configPassword.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, config.serverURL.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 4, config.roomName.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(stmt, 5, config.lastUpdate);
+    sqlite3_bind_int(stmt, 6, config.updateDelay);
+    sqlite3_bind_double(stmt, 7, config.relayDelay);
+    sqlite3_bind_int(stmt, 8, config.doorOpenedAlertDelay);
+    sqlite3_bind_text(stmt, 9, config.wifiSSID.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 10, config.wifiPassword.c_str(), -1, SQLITE_TRANSIENT);
       }
     );
   }
 
   Config retrieve() {
     return dao.queryOne(
-      "SELECT boardVersion, serverURL, roomName, fakeLastUpdate, updateDelay, relayDelay, doorOpenedAlertDelay, wifiSSID, wifiPassword FROM board_config WHERE id = ?",
+      "SELECT boardVersion, configPassword, serverURL, roomName, lastUpdate, updateDelay, relayDelay, doorOpenedAlertDelay, wifiSSID, wifiPassword FROM board_config WHERE id = ?",
       1,
       [](sqlite3_stmt* stmt) {
         Config config;
         config.boardVersion = sqlite3_column_int(stmt, 0);
-        config.serverURL = (const char *)sqlite3_column_text(stmt, 1);
-        config.roomName =(const char *)sqlite3_column_text(stmt, 2);
-        config.fakeLastUpdate = (const char *)sqlite3_column_text(stmt, 3);
-        config.updateDelay = sqlite3_column_int(stmt, 4);
-        config.relayDelay = sqlite3_column_double(stmt, 5);
-        config.doorOpenedAlertDelay = sqlite3_column_int(stmt, 6);
-        config.wifiSSID = (const char *)sqlite3_column_text(stmt, 7);
-        config.wifiPassword = (const char *)sqlite3_column_text(stmt, 8);
+        config.configPassword= (const char *)sqlite3_column_text(stmt, 1);
+        config.serverURL = (const char *)sqlite3_column_text(stmt, 2);
+        config.roomName =(const char *)sqlite3_column_text(stmt, 3);
+        config.lastUpdate = sqlite3_column_int(stmt, 4);
+        config.updateDelay = sqlite3_column_int(stmt, 5);
+        config.relayDelay = sqlite3_column_double(stmt, 6);
+        config.doorOpenedAlertDelay = sqlite3_column_int(stmt, 7);
+        config.wifiSSID = (const char *)sqlite3_column_text(stmt, 8);
+        config.wifiPassword = (const char *)sqlite3_column_text(stmt, 9);
         return config;
       }
     );
   }
 };
+
+class DaoManager {
+public:
+  KeyringDao keyringDao;
+  EventDao eventDao;
+  ScheduleDao scheduleDao;
+  ConfigDao configDao;
+
+  // Singleton accessor
+  static DaoManager& instance() {
+    static DaoManager instance;
+    return instance;
+  }
+
+private:
+  DaoManager() {
+    Serial.println("[DAO] Initializing DAOs...");
+    // Initialize DAOs here if needed
+  }
+
+  ~DaoManager() {
+    Serial.println("[DAO] Closing DAOs...");
+    // Cleanup if needed
+  }
+
+  // Prevent copying
+  DaoManager(const DaoManager&) = delete;
+  DaoManager& operator=(const DaoManager&) = delete;
+};
+
 
 #endif
