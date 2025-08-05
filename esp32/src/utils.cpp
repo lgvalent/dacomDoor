@@ -86,25 +86,28 @@ public:
 
   static String datetimeToString(time_t time)
   {
-    struct tm *ti = localtime(&time);  
-    String dStr = Utils::padZero(ti->tm_mday);
-    String moStr = Utils::padZero(ti->tm_mon);
-    String hStr = Utils::padZero(ti->tm_hour);
-    String mStr = Utils::padZero(ti->tm_min);
-    String sStr = Utils::padZero(ti->tm_sec);
-
-    String dateAndHour = String(ti->tm_year) + "-" + moStr + "-" + dStr + "T" + hStr + ":" +
-                         mStr + ":" + sStr;
-
-    return dateAndHour;
+    struct tm *ti = localtime(&time);
+    char buffer[25];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", ti);
+   
+    return String(buffer);
   }
 
-  static time_t stringToDatetime(String time)
+  /** 
+   * JSON format date string
+   * "Mon, 04 Aug 2025 00:00:00 GMT"
+   * %a, %d %b %Y %H:%M:%S %Z
+  */
+  inline static const char* jsonFormatDate = "%a, %d %b %Y %H:%M:%S %Z";
+  static time_t stringToDatetime(String timeStr, const char* format = jsonFormatDate)
   {
-
-    time_t result = 0;
-    /** TODO */
-    return result;
+    struct tm ti = {};
+    char* result = strptime(timeStr.c_str(), format, &ti);
+    if (result != nullptr) {
+        return mktime(&ti);
+    }    
+    Serial.printf("[ERROR]: Failed to parse date string: %s\n", timeStr.c_str());
+    return 0; 
   }
 
   static String currentDatetime()

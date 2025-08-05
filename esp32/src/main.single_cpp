@@ -1,0 +1,96 @@
+#include <Arduino.h>
+#include "app-tasks.cpp"
+#include "app-board.cpp"
+#include "doorlock.cpp"
+#include "config.cpp"
+#include "reader.cpp"
+
+// time_t lastCommandButtonTime = 0;
+time_t lastDoorSensorTime = 0;
+bool locked = true;
+
+Doorlock *doorlock;
+BoardModel *boardModel;
+AppTasks *appTasks;
+AppBoard *appBoard;
+AppConfig *appConfig;
+Reader *reader;
+
+// Task wrappers for lambdas
+struct TaskWrapper {
+  std::function<void()> func;
+  static void run(void *arg) {
+    TaskWrapper *task = static_cast<TaskWrapper *>(arg);
+    task->func();
+    vTaskDelete(NULL); // Just in case the task exits
+  }
+};
+
+// Door sensor ISR callback
+void doorSensorCallback()
+{
+  time_t t = Utils::now();
+  if (t - lastDoorSensorTime > 1) {
+    lastDoorSensorTime = t;
+    appBoard->lastDoorOpenTime = t;
+  }
+}
+
+// // Command button ISR callback
+// void commandButtonCallback()
+// {
+//   time_t t = Utils::now();
+//   if (t - lastCommandButtonTime > 1) {
+//     if (boardModel->isLightOn() || boardModel->isLocked())
+//       appBoard->openDoor(UID_NULL);
+//     else
+//       boardModel->beepOk();
+//     lastCommandButtonTime = t;
+//   }
+// }
+
+void commandButtonCallback()
+{
+  if (boardModel->isLightOn() || appBoard->unlocked)
+      appBoard->openDoor(UID_NULL);
+    else
+      boardModel->beepOk();
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  Serial.println("Booting...");
+
+  appConfig = new AppConfig();
+  appConfig->startup();
+
+  doorlock = new Doorlock();
+  boardModel = BoardModel::getBoardModel(appConfig->config.boardVersion);
+
+  reader = new Reader(boardModel);
+  reader->startup();
+
+  appBoard = new AppBoard(appConfig, boardModel, doorlock, reader);
+  appTasks = new AppTasks(appConfig);
+  
+  boardModel->serDoorSensorCallback(&doorSensorCallback);
+  boardModel->setCommandButtonCallback(&commandButtonCallback);
+
+  appBoard->startup();
+  appTasks->startup();
+
+  Serial.println("Setup finished...");
+ 
+  /** For tests only */
+  // appConfig->config.updateDelay = INT_MAX; 
+  // esp_light_sleep_start(); // Start light sleep to save power until the first event
+  // Serial.println("Entering light sleep...");
+}
+
+void loop()
+{
+  // appTasks->run();
+  appBoard->run();
+    // Nothing to do here. Everything runs in tasks.
+}

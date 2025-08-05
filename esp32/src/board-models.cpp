@@ -23,8 +23,9 @@ inline int GPIO::input(uint8_t pin) { return digitalRead(pin); }
 class BoardModel
 {
 private:
-  time_t lastCommandButtonTime = 0;
   bool locked = true;
+
+  static const uint8_t LEDC_CHANNEL_FOR_SPEAKER = 0;
 
 public:
   static const uint8_t DISABLED_PIN = 0; 
@@ -67,8 +68,11 @@ public:
     GPIO::setup(this->pushButtonProgramPin, INPUT_PULLUP);
     GPIO::setup(this->pushButtonCommandPin, INPUT_PULLUP);
 
-    if (this->speakerPin)
+    if (this->speakerPin){
       GPIO::setup(this->speakerPin, OUTPUT);
+      ledcSetup(LEDC_CHANNEL_FOR_SPEAKER, 1000, 8); // 1000 Hz frequency, 8 bits resolution
+	    ledcAttachPin(this->speakerPin, LEDC_CHANNEL_FOR_SPEAKER); // attach the LED_BUILTIN pin to the channel
+    }
 
     if (this->doorSensorPin)
       GPIO::setup(this->doorSensorPin, INPUT_PULLUP);
@@ -82,43 +86,52 @@ public:
 
   void setCommandButtonCallback(void (*cb)())
   {
-    uint8_t pin = this->pushButtonCommandPin;
-    if (pin > 0) 
+    if (this->pushButtonCommandPin > 0) 
     {
-      detachInterrupt(pin);
-      attachInterrupt(pin, cb, HIGH);
+      detachInterrupt(this->pushButtonCommandPin);
+      attachInterrupt(this->pushButtonCommandPin, cb, HIGH);
     }
   }
 
   void serDoorSensorCallback(void (*cb)())
   {
-    uint8_t pin = this->doorSensorPin;
-    if (pin > 0) 
+    if (doorSensorPin > 0) 
     {
-      detachInterrupt(pin);
-      attachInterrupt(pin, cb, HIGH);
+      detachInterrupt(doorSensorPin);
+      attachInterrupt(doorSensorPin, cb, HIGH);
     }
   }
 
-  void beep(double frequency, uint32_t delay_time)
+  /**
+   * Emits a beep sound with the specified frequency and duration.
+   * This function uses the LEDC (LED Control) peripheral to generate a PWM signal
+   * that can be used to drive a speaker or buzzer.
+   * 
+   * While the function is active, it turns on the activity LED to indicate that a sound is being emitted.
+   *
+   * @param   double  delay_time  [delay_time description]
+   *
+   * @return  void                [return description]
+   */
+  void beep(u_int32_t frequency, uint32_t delay_time)
   {
-    uint8_t channel = this->speakerPin;
-    uint8_t resolution = 8;
-    if (channel > 0)
+    this->turnOnActivityLed();
+    if (this->speakerPin > 0)
     {
-      ledcSetup(channel, frequency, resolution);
-      ledcWriteNote(channel, NOTE_A, 3 /*OCTAVE*/);
+      ledcWriteTone(LEDC_CHANNEL_FOR_SPEAKER, frequency);
       delay(delay_time);
+      ledcWriteTone(LEDC_CHANNEL_FOR_SPEAKER, 0);
     }
+    this->turnOffActivityLed();
   }
 
   void beepNotOk()
   {
     if (this->speakerPin > 0)
     {
-      this->beep(440, 50);
+      this->beep(440, 100);
       delay(50);
-      this->beep(440, 50);
+      this->beep(440, 100);
     }
   }
 
@@ -132,25 +145,35 @@ public:
 
   void lock()
   {
-    GPIO::turnOn(this->lockRelayPin);
+    GPIO::turnOff(this->lockRelayPin);
+    this->locked = true;
     this->beepOk();
   }
 
   void unlock()
   {
-    GPIO::turnOff(this->lockRelayPin);
+    GPIO::turnOn(this->lockRelayPin);
+    this->locked = false;
     this->beepOk();
-  }
+ }
 
   void blinkActivityLed()
   {
-      GPIO::turnOn(this->activityLedPin);
+      this->turnOnActivityLed();
       delay(30);
-      GPIO::turnOff(this->activityLedPin);
-      delay(90);    
+      this->turnOffActivityLed();
+      delay(70);    
   }
 
-  void toggleLocked() { this->locked = !this->locked; }
+  void turnOnActivityLed()
+  {
+    GPIO::turnOn(this->activityLedPin);
+  }
+
+  void turnOffActivityLed()
+  {
+    GPIO::turnOff(this->activityLedPin);
+  }
 
   bool isLocked() { return this->locked; }
   bool isLightOn() { return (this->lightSensorPin > 0) && GPIO::input(this->lightSensorPin); }
@@ -162,7 +185,7 @@ public:
   {
     BoardModel* boardModel;
     switch(version){
-      case 1 : boardModel = new BoardModel(13, 2,18, 4,15,17, 5, 3);break;
+      case 1 : boardModel = new BoardModel(13, 2,18, 4,15,17, 5,16);break;
       case 2 : boardModel = new BoardModel( 5, 0, 6, 2, 1, 3, 4,20);break;
       default: throw "Version not suportted yet!";
     }

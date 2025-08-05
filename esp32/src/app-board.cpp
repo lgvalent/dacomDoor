@@ -16,10 +16,10 @@ private:
   Reader *reader;
 
   Uid lastUid = 0;
-  time_t lastUidTime = Utils::now();
-  bool hasDoorOpenEvent;
-
+  time_t lastUidTime = Utils::now();  
 public:
+  bool unlocked = false;
+  bool hasDoorOpenEvent = false;
   time_t lastDoorOpenTime = 0;
 
   AppBoard(AppConfig *appConfig, BoardModel *board, Doorlock *doorlock, Reader *reader) : board(board),
@@ -31,81 +31,73 @@ public:
 
   void toggleDoor(Uid uid)
   {
-    this->board->toggleLocked();
-    bool isLocked = this->board->isLocked();
-
-    if (this->appConfig->config.relayDelay > 1)
+    this->unlocked = !this->unlocked;
+    if (this->appConfig->config.relayDelay > Config::MAX_RELAY_DELAY_FOR_MAGNETIC)
     {
-      if (isLocked)
-        this->board->lock();
-      else
+      if (this->unlocked)
         this->board->unlock();
+      else
+        this->board->lock();
     }
     else
     {
-      bool notIsLocked = !isLocked;
-      if (notIsLocked)
+      if (this->unlocked){
         this->openDoor(uid);
+      }
     }
 
-    if (this->appConfig->config.relayDelay > 1 || isLocked)
+    // Save the last door open(IN)/close(OUT) time
+    if (!this->unlocked || this->appConfig->config.relayDelay > Config::MAX_RELAY_DELAY_FOR_MAGNETIC)
     {
       this->doorlock->saveEvent(
           uid,
-          isLocked?EventType::OUT:EventType::IN,
+          this->unlocked?EventType::IN:EventType::OUT,
           Utils::now());
     }
 
     for (int i = 0; i < 3; i++)
     {
-      if (isLocked)
+      if (this->unlocked)
         this->board->beepOk();
       else
         this->board->beepNotOk();
-
-      this->board->blinkActivityLed();
     }
   }
 
   void openDoor(Uid uid)
   {
-    uint32_t t = this->appConfig->config.relayDelay * 1000.0;
-    if (this->board->isLocked() || t < 1000)
+    if (this->board->isLocked() || this->appConfig->config.relayDelay <= Config::MAX_RELAY_DELAY_FOR_MAGNETIC)
     {
       this->board->unlock();
-      delay(t);
+      delay(this->appConfig->config.relayDelay);
       this->board->lock();
-    }
-    else
-    {
+    } else {
       this->board->beepOk();
     }
+    
+    this->doorlock->saveEvent(
+          uid,
+          EventType::IN,
+          Utils::now());
   }
 
   void testDoorOpened()
   {
-    bool isUnlocked = !this->board->isLocked();
-    if (isUnlocked)
+    if (!this->unlocked && this->board->isLocked() && this->board->isDoorOpened())
     {
-      this->hasDoorOpenEvent = false;
-    }
-    else if (this->lastUid)
-    {
-      time_t t = time(NULL);
+      this->board->beepNotOk();
+      Serial.println(F("[LOG]: Door opened alert!"));
+
+      time_t t = Utils::now();
       time_t diff = t - this->lastDoorOpenTime; // seconds
-      if (diff > this->appConfig->config.doorOpenedAlertDelay)
+      if (diff > this->appConfig->config.doorOpenedAlertDelay && !this->hasDoorOpenEvent)
       {
-        this->board->beepOk();
-        this->board->blinkActivityLed();
-        bool notHasDoorOpenEvent = !this->hasDoorOpenEvent;
-        if (notHasDoorOpenEvent)
-        {
+          Serial.println(F("[LOG]: Door opened event registered!"));
           this->hasDoorOpenEvent = true;
           this->doorlock->saveEvent(
             this->lastUid,
             EventType::OPENED,
             Utils::now());
-        }
       }
     }
   }
@@ -127,20 +119,32 @@ public:
     }
   }
 
+  void testCommandButton()
+  {
+    static time_t lastCommandButtonTime = 0;
+    if (this->board->isCommandButtonPushed() && (Utils::now() - lastCommandButtonTime > 3))
+    {
+      lastCommandButtonTime = Utils::now();
+      if (this->board->isCommandButtonPushed())
+        if(this->unlocked || this->board->isLightOn())
+          this->openDoor(UID_NULL);
+        else 
+          this->board->beepNotOk();
+    }
+  }
+
   void blink()
   {
     this->board->blinkActivityLed();
-    if (!this->board->isLocked())
+    if (this->unlocked)
     {
       this->board->blinkActivityLed();
     }
   }
 
-  void tryLearnUid(Uid uid)
+  void learnUid(Uid uid)
   {
-    bool wasLearned = this->doorlock->learnUid(uid);
-
-    if (wasLearned)
+    if (this->doorlock->learnUid(uid))
     {
       Serial.println(F("[LOG]: Learned"));
       this->board->beepOk();
@@ -153,14 +157,11 @@ public:
     }
   }
 
-  void tryCheckAccess(Uid uid)
+  void checkAccess(Uid uid)
   {
-    bool hasAccess = this->doorlock->checkAccess(uid);
-
-    if (hasAccess)
+    if (this->doorlock->checkAccess(uid))
     {
-      UserType userType = this->doorlock->getLastUserType();
-      switch(userType){
+      switch(this->doorlock->getLastUserType()){
         // Keep door opened when a professor open it
         case UserType::PROFESSOR: this->toggleDoor(uid); break;
         case UserType::EMPLOYEE: 
@@ -170,11 +171,17 @@ public:
           else
             this->toggleDoor(uid);
           break;
-      }
+        default:
+            this->openDoor(uid);
+        }
     }
     else
     {
-      this->board->beepNotOk();
+      // If the door is unlocked, save IN event with uid
+      if (this->unlocked)
+        this->openDoor(uid);
+      else
+        this->board->beepNotOk();
     }
   }
 
@@ -185,24 +192,30 @@ public:
       return;
 
     this->lastUid = uid;
-    this->lastUidTime = time(NULL);
+    this->lastUidTime = Utils::now();
 
     Serial.print("[LOG]: UID: ");
     Serial.println(uid);
 
     if (this->board->isProgramButtonPushed())
-      this->tryLearnUid(uid);
+      this->learnUid(uid);
     else
-      this->tryCheckAccess(uid);
+      this->checkAccess(uid);
   }
 
   void run()
   {
-    this->testDoorOpened();
-    this->testShutdownNow();
-    this->blink();
+    static unsigned long lastRead = 0;
+    unsigned long now = millis();
     this->readUid();
-    delay(500);
+    this->testCommandButton();
+    if (now - lastRead > 900) // Read UID every second
+    {
+      lastRead = now;
+      this->testDoorOpened();
+      this->testShutdownNow();
+      this->blink();
+    }
   }
 };
 

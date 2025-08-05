@@ -25,17 +25,21 @@ public:
 
   Uid readUid()
   {
-    if (this->rdm6300.get_new_tag_id() == 0) 
+    if (!this->rdm6300.get_new_tag_id()) 
       return UID_NULL; // No new tag detected
     else
       Serial.println(F("[WARN]: New tag detected!"));
-    
     return this->rdm6300.get_tag_id();
   }
 
   int getUartNumber()
   {
-    return 1; // 1 is default value for uart_nr in rdm6300.begin() method
+    switch(boardModel->readerRxPin){
+      case 3: return 0; // UART0 ESP32
+      case 16: return 2; // UART2 ESP32
+      case 20: return 0; // UART0 ESP32C3
+      default: return -1; // No hardware pin for UART
+    };
   }
 };
 

@@ -14,20 +14,11 @@ private:
 public:
   UserType getLastUserType() { return this->lastUserType; }
 
-  Doorlock():daoManager(&DaoManager::instance()){
-    Keyring keyring;
-    keyring.build(
-        5657481,                     // uid
-        123456,                     // userId
-        UserType::PROFESSOR,   // userType
-        Utils::now()           // lastUpdate
-    );
-
-    this->daoManager->keyringDao.save(keyring);
-  }
-
+  Doorlock():daoManager(&DaoManager::instance()){}
+  
   void saveEvent(const Uid uid,const EventType eventType, const time_t time)
   {
+    Serial.println(F("[LOG]: Saving event..."));
     Event event;
 
     event.build(
@@ -39,6 +30,7 @@ public:
 
   void saveKeyring(Uid uid)
   {
+    Serial.println(F("[LOG]: Saving keyring..."));
     Keyring keyring;
 
     keyring.build(
@@ -68,14 +60,12 @@ public:
 
     if (keyring.isValid())
     {      
-      bool result = this->checkAccessType(keyring.getUserType(), Utils::now());
-      if(result)lastUserType = keyring.getUserType();
-      return result;
+      if(this->checkAccessType(keyring.getUserType(), Utils::now())){
+        lastUserType = keyring.getUserType();
+        return true;
+      }
     }
-    else
-    {
-      return false;
-    }
+    return false;
   }
 
   bool learnUid(Uid uid)
@@ -95,9 +85,7 @@ public:
 
   bool checkAccess(Uid uid)
   {
-    bool hasAccess = this->checkSchedule(uid);
-
-    if (hasAccess)
+    if (this->checkSchedule(uid))
     {
       Serial.print(F("[LOG]: UID '"));
       Serial.print(uid);

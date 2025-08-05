@@ -80,18 +80,17 @@ public:
   }
 
   bool insert(const std::string& sql, const T& model, Binder binder) {
-    Serial.printf("Memória livre (heap): %u bytes\n", ESP.getFreeHeap());
     Serial.printf("[LOG]: Insert SQL: %s\n", sql.c_str());
     sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) return false;
+    int code = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
     binder(stmt, model);
     Serial.printf("[LOG]: Binder: %s\n", model.toJSON().c_str());
-    bool result = sqlite3_step(stmt) == SQLITE_DONE;
-    if(!result) {
-      Serial.printf("[ERROR]: Failed to execute statement: %s\n", sqlite3_errmsg(db));
+    code = sqlite3_step(stmt) == SQLITE_DONE;
+    if(!code) {
+      Serial.printf("[ERROR]: Failed to execute insert: %s\n", sqlite3_errmsg(db));
     }
     sqlite3_finalize(stmt);
-    return result;
+    return code;
   }
 
   bool update(const std::string& sql, const T& model, Binder binder) {
@@ -102,11 +101,14 @@ public:
   bool remove(const std::string& sql, Uid id) {
     Serial.printf("[LOG]: Remove SQL: %s\n", sql.c_str());
     sqlite3_stmt* stmt;
-    sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
-    sqlite3_bind_int(stmt, 1, id);
-    bool result = sqlite3_step(stmt) == SQLITE_DONE;
+    int code = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+    code = sqlite3_bind_int(stmt, 1, id);
+    code = sqlite3_step(stmt) == SQLITE_DONE;
+    if(!code) {
+      Serial.printf("[ERROR]: Failed to execute remove: %s\n", sqlite3_errmsg(db));
+    }
     sqlite3_finalize(stmt);
-    return result;
+    return code;
   }
 
   std::vector<T> queryAll(const std::string& sql, Loader loader) {
@@ -153,6 +155,8 @@ public:
     if (sqlite3_step(stmt) == SQLITE_ROW) {
       result = loader(stmt);
       Serial.println("[LOG]: Loader execute for the found model");
+    }else{
+      Serial.printf("[ERROR]: Failed to execute queryOne: %s\n", sqlite3_errmsg(db));
     }
     sqlite3_finalize(stmt);
     return result;
@@ -173,26 +177,13 @@ public:
 
   bool save(const Keyring& k) {
     return dao.insert(
-      "INSERT INTO keyrings (userId, uid, userType, lastUpdate) VALUES (?, ?, ?, ?);",
+      "INSERT OR REPLACE INTO keyrings (userId, uid, userType, lastUpdate) VALUES (?, ?, ?, ?);",
       k,
       [](sqlite3_stmt* stmt, const Keyring& m) {
         sqlite3_bind_int(stmt, 1, m.getUserId());
         sqlite3_bind_int(stmt, 2, m.getUid());
         sqlite3_bind_int(stmt, 3, static_cast<char>(m.getUserType()));
         sqlite3_bind_int64(stmt, 4, m.getLastUpdate());
-      }
-    );
-  }
-
-  bool update(const Keyring& k) {
-    return dao.update(
-      "UPDATE keyrings SET uid=?, userType=?, lastUpdate=? WHERE userId=?;",
-      k,
-      [](sqlite3_stmt* stmt, const Keyring& m) {
-        sqlite3_bind_int(stmt, 1, m.getUid());
-        sqlite3_bind_int(stmt, 2, static_cast<char>(m.getUserType()));
-        sqlite3_bind_int64(stmt, 3, m.getLastUpdate());
-        sqlite3_bind_int(stmt, 4, m.getUserId());
       }
     );
   }
@@ -254,14 +245,18 @@ public:
 
   bool save(const Event& event) {
     events.push_back(event);
+    Serial.printf("[LOG]: Event saved: %s\n", event.toJSON().c_str());
+    Serial.println(events.size());
     return true;
   }
 
   std::vector<Event> findAll() {
+    Serial.printf("[LOG]: EventeDAO.FindAll: %d\n", events.size());
     return events;
   }
 
   void removeAll() {
+    Serial.println("[LOG]: Clearing all saved events...");
     events.clear();
   }
 };
@@ -326,13 +321,14 @@ class ScheduleDao {
 
 public:
   ScheduleDao() : dao("schedules") {
-    dao.executeSQL("CREATE TABLE IF NOT EXISTS schedules ("
-                   "id INTEGER PRIMARY KEY, "
-                   "dayOfWeek INTEGER, "
-                   "beginTime INTEGER, "
-                   "endTime INTEGER, "
-                   "userType INTEGER, "
-                   "lastUpdate INTEGER);");
+    /** SQLite3 disk I/O error wiht many tables and fields */
+    // dao.executeSQL("CREATE TABLE IF NOT EXISTS schedules ("
+    //                "id INTEGER PRIMARY KEY, "
+    //                "dayOfWeek INTEGER, "
+    //                "beginTime INTEGER, "
+    //                "endTime INTEGER, "
+    //                "userType INTEGER, "
+    //                "lastUpdate INTEGER);");
   }
 
   bool save(const Schedule& schedule) {
@@ -445,54 +441,49 @@ public:
     dao.executeSQL("CREATE TABLE IF NOT EXISTS config ("
         "id INTEGER PRIMARY KEY CHECK (id = 1),"
         "boardVersion INTEGER,"
-        "serverURL TEXT,"
+        "configPassword TEXT,"
         "roomName TEXT,"
-        "fakeLastUpdate INTEGER,"
-        "updateDelay INTEGER,"
-        "relayDelay REAL,"
-        "doorOpenedAlertDelay INTEGER,"
+        "lastUpdate INTEGER,"
+        "relayDelay INTEGER,"
         "wifiSSID TEXT,"
-        "wifiPassword TEXT);");
+        "wifiPassword TEXT,"
+        "gmtZone INTEGER);");
   }
 
   bool save(const Config& config) {
     return dao.insert(
-      "INSERT OR REPLACE INTO board_config ("
-      "id, boardVersion, configPassword, serverURL, roomName, fakeLastUpdate,"
-      "updateDelay, relayDelay, doorOpenedAlertDelay, wifiSSID, wifiPassword"
-      ") VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+      "INSERT OR REPLACE INTO config ("
+      "id, boardVersion, configPassword, roomName, lastUpdate,"
+      "relayDelay, wifiSSID, wifiPassword, gmtZone"
+      ") VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?);",
       config,
-      [config](sqlite3_stmt* stmt, const Config& m) {
-    sqlite3_bind_int(stmt, 1, config.boardVersion);
-    sqlite3_bind_text(stmt, 2, config.configPassword.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 3, config.serverURL.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 4, config.roomName.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int64(stmt, 5, config.lastUpdate);
-    sqlite3_bind_int(stmt, 6, config.updateDelay);
-    sqlite3_bind_double(stmt, 7, config.relayDelay);
-    sqlite3_bind_int(stmt, 8, config.doorOpenedAlertDelay);
-    sqlite3_bind_text(stmt, 9, config.wifiSSID.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 10, config.wifiPassword.c_str(), -1, SQLITE_TRANSIENT);
+      [](sqlite3_stmt* stmt, const Config& m) {
+    sqlite3_bind_int(stmt, 1, m.boardVersion);
+    sqlite3_bind_text(stmt, 2, m.configPassword.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, m.roomName.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(stmt, 4, m.lastUpdate);
+    sqlite3_bind_int(stmt, 5, m.relayDelay);
+    sqlite3_bind_text(stmt, 6, m.wifiSSID.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 7, m.wifiPassword.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 8, m.gmtZone);
       }
     );
   }
 
   Config retrieve() {
     return dao.queryOne(
-      "SELECT boardVersion, configPassword, serverURL, roomName, lastUpdate, updateDelay, relayDelay, doorOpenedAlertDelay, wifiSSID, wifiPassword FROM board_config WHERE id = ?",
+      "SELECT boardVersion, configPassword, roomName, lastUpdate, relayDelay, wifiSSID, wifiPassword, gmtZone FROM config WHERE id = ?",
       1,
       [](sqlite3_stmt* stmt) {
         Config config;
         config.boardVersion = sqlite3_column_int(stmt, 0);
         config.configPassword= (const char *)sqlite3_column_text(stmt, 1);
-        config.serverURL = (const char *)sqlite3_column_text(stmt, 2);
-        config.roomName =(const char *)sqlite3_column_text(stmt, 3);
-        config.lastUpdate = sqlite3_column_int(stmt, 4);
-        config.updateDelay = sqlite3_column_int(stmt, 5);
-        config.relayDelay = sqlite3_column_double(stmt, 6);
-        config.doorOpenedAlertDelay = sqlite3_column_int(stmt, 7);
-        config.wifiSSID = (const char *)sqlite3_column_text(stmt, 8);
-        config.wifiPassword = (const char *)sqlite3_column_text(stmt, 9);
+        config.roomName =(const char *)sqlite3_column_text(stmt, 2);
+        config.lastUpdate = sqlite3_column_int(stmt, 3);
+        config.relayDelay = sqlite3_column_int(stmt, 4);
+        config.wifiSSID = (const char *)sqlite3_column_text(stmt, 5);
+        config.wifiPassword = (const char *)sqlite3_column_text(stmt, 6);
+        config.gmtZone = sqlite3_column_int(stmt, 7);
         return config;
       }
     );
@@ -502,9 +493,9 @@ public:
 class DaoManager {
 public:
   KeyringDao keyringDao;
+  ConfigDao configDao;
   EventDao eventDao;
   ScheduleDao scheduleDao;
-  ConfigDao configDao;
 
   // Singleton accessor
   static DaoManager& instance() {

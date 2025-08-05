@@ -1,10 +1,8 @@
 #ifndef APP_TASKS
 #define APP_TASKS
 #include "SPIFFS.h"
-#include <Vector.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <ArduinoJson.h>
 
 #include "config.cpp"
 #include "models.cpp"
@@ -12,7 +10,7 @@
 
 #define FORMAT_SPIFFS_IF_FAILED true
 
-static String vector_to_string(Vector<String> &xs, int idx_start, int idx_end)
+static String vector_to_string(std::vector<String> &xs, int idx_start, int idx_end)
 {
   String res = "[";
 
@@ -26,15 +24,91 @@ static String vector_to_string(Vector<String> &xs, int idx_start, int idx_end)
 
   return res + "]";
 }
-static String vector_to_string(Vector<String> &xs) { return vector_to_string(xs, 0, xs.size()); }
+static String vector_to_string(std::vector<String> &xs) { return vector_to_string(xs, 0, xs.size()); }
 
-static boolean is_valid_json(JsonObject doc, Vector<String> keys)
-{
-  for (String key : keys)
-    if (!doc.containsKey(key) || doc[key].isNull())
-      return false;
-  return true;
-}
+// static boolean is_valid_json(JsonObject doc, std::vector<String> keys)
+// {
+//   for (String key : keys)
+//     if (!doc.containsKey(key) || doc[key].isNull())
+//       return false;
+//   return true;
+// }
+
+#include <JsonStreamingParser.h>
+#include <JsonListener.h>
+
+class KeyringJsonHandler : public JsonListener {
+private:
+  enum Section { NONE, REMOVED, UPDATED } section = NONE;
+  String currentKey;
+  String uid, userId, userType, lastUpdate;
+  bool insideObject = false;
+  DaoManager *daoManager;
+
+public:
+  KeyringJsonHandler(DaoManager *daoManager): daoManager(daoManager) {}
+
+  void key(String key) override {
+    currentKey = key;
+  
+    // Se ainda não entramos em REMOVED ou UPDATED, estamos na raiz
+    if (key == "removed" || key == "updated") {
+      section = (key == "removed") ? REMOVED : UPDATED;
+    }  
+  }
+
+  void value(String value) override {
+    if (!insideObject) return;
+
+    if (section == REMOVED && currentKey == "userId") {
+      Uid uid = value.toInt();
+      Keyring k = this->daoManager->keyringDao.findByUid(uid);
+      if (k.isValid()) {
+        this->daoManager->keyringDao.remove(uid);
+        Serial.print("[LOG]: Removed keyring: ");
+      }else{
+        Serial.print("[LOG]: Removed keyring not found: ");
+      }
+      Serial.println(uid);
+    }
+
+    if (section == UPDATED) {
+      if (currentKey == "uid") uid = value;
+      else if (currentKey == "userId") userId = value;
+      else if (currentKey == "userType") userType = value;
+      else if (currentKey == "lastUpdate") lastUpdate = value;
+    }
+  }
+
+  void startArray() override {}
+  void endArray() override {}
+
+  void startObject() override {
+    insideObject = true;
+    uid = userId = userType = lastUpdate = "";
+  }
+
+  void endObject() override {
+    if (section == UPDATED && userId != "") {
+      Keyring k = this->daoManager->keyringDao.findByUserId(userId.toInt());
+      Uid uidInt = std::stoi(uid.c_str(), nullptr, 16); // Assuming uid is in hexadecimal format
+      UserType ut = Utils::findEnumByValue(userTypeNames, userType);
+      k.build(uidInt, userId.toInt(), ut, Utils::stringToDatetime(lastUpdate));
+      this->daoManager->keyringDao.save(k);
+      Serial.print("[LOG]: Updated keyring: ");
+      Serial.println(userId);
+    }
+
+    insideObject = false;
+  }
+
+  void startDocument() override {}
+  void endDocument() override {}
+
+  void whitespace(char c) override {}
+
+};
+
 
 class AppTasks
 {
@@ -43,7 +117,8 @@ protected:
   AppConfig *appConfig;
 
   bool timeUpdated = false;
-
+  time_t lastUpdateTry = 0;
+ 
   bool networkGuard()
   {
     if (!this->hasNetwork())
@@ -73,11 +148,55 @@ protected:
       Serial.print("\n[WARN]: Falha ao sincronizar NTP\n");
     }
   }
-  bool sendUpdateEventsRequest(Vector<String> &result)
-  {
-    HTTPClient http;
 
-    http.begin(this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/events");
+  bool sendUpdateKeyringsRequest()
+{
+  String url = this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/keyrings?lastUpdate=" + Utils::datetimeToString(this->appConfig->config.lastUpdate);
+  url.replace(" ", "%20");
+
+  Serial.print("[LOG]: Sending keyrings update request to: ");
+  Serial.println(url);
+
+  HTTPClient http;
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+
+  int code = http.GET();
+
+  if (code != 200 && code != 204) {
+    Serial.print("[ERROR]: StatusCode: ");
+    Serial.println(code);
+    http.end();
+    return false;
+  }
+
+  if (code == 204) {
+    http.end();
+    return true;
+  }
+
+  WiFiClient& stream = http.getStream();
+
+  KeyringJsonHandler handler(daoManager);
+  JsonStreamingParser parser;
+  parser.setListener(&handler);
+
+  while (stream.connected() && stream.available()) {
+    char c = stream.read();
+    parser.parse(c);
+  }
+
+  http.end();
+  return true;
+}
+
+  bool sendUpdateEventsRequest(std::vector<String> &result)
+  {
+    String url = this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/events";
+    Serial.print("[LOG]: Sending events update request to: "); Serial.println(url);
+  
+    HTTPClient http;
+    http.begin(url);
     http.addHeader("Content-Type", "application/json");
 
     int code = http.POST(vector_to_string(result));
@@ -95,9 +214,12 @@ protected:
   }
   bool sendUpdateScheduleRequest()
   {
-    HTTPClient http;
+    String url = this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/schedules?lastUpdate=" + Utils::datetimeToString(this->appConfig->config.lastUpdate);
+    url.replace(" ", "%20"); // URL encode spaces
+    Serial.print("[LOG]: Sending schedules update request to: "); Serial.println(url);
 
-    http.begin(this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/schedules?lastUpdate=\"" + Utils::datetimeToString(this->appConfig->config.lastUpdate) + "\"");
+    HTTPClient http;
+    http.begin(url);
     http.addHeader("Content-Type", "application/json");
 
     int code = http.GET();
@@ -120,212 +242,97 @@ protected:
     http.end();
     return code==200 || code==204;
   }
-  bool sendUpdateKeyringsRequest()
-  {
-    HTTPClient http;
 
-    http.begin(this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/keyring?lastUpdate=\"" + Utils::datetimeToString(this->appConfig->config.lastUpdate) + "\"");
-    http.addHeader("Content-Type", "application/json");
-
-    int code = http.GET();
-
-    if (code == 204) // NO CONTENT
-    {
-    }
-    else if (code != 200)
-    {
-      Serial.println("[ERROR]: Fail to update schedules");
-      Serial.print("[ERROR]: StatusCode: ");
-      Serial.println(code);
-    }
-    else
-    {
-      String strJson = http.getString();
-      this->updateInternalKeyrings(strJson);
-    }
-    http.end();
-    return code == 200 || code == 204;
-  }
-
-  void updateInternalKeyrings(String &strJson)
-  {
-    // TODO: Find how to check types of JSON result
-    DynamicJsonDocument doc(2048);
-    DeserializationError error = deserializeJson(doc, strJson);
-
-    // Test if parsing succeeds.
-    if (error)
-    {
-      Serial.print(F("deserializeJson() failed: "));
-      Serial.println(error.f_str());
-      return;
-    }
-    else if (doc.containsKey("removed") && doc.containsKey("updated"))
-    {
-      
-      Vector<String> removedKeys;
-      removedKeys.push_back("userId");
-      
-      for (JsonObject x : doc["removed"].as<JsonArray>())
-      {
-        if (is_valid_json(x, removedKeys))
-        {
-          Uid userId = x["userId"];
-          Keyring keyring = daoManager->keyringDao.findByUid(userId);
-
-          if (keyring.isValid())
-          {
-            daoManager->keyringDao.remove(userId);
-            Serial.print("[LOG]: keyring removed: ");
-            Serial.println(userId);
-          }
-          else
-          {
-            Serial.print("[LOG]: keyring not found to remove: ");
-            Serial.println(userId);
-          }
-        }
-        else
-        {
-          Serial.println("[WARN]: An invalid removed entry was found!");
-        }
-      }
-
-      Vector<String> updatedKeys;
-      updatedKeys.push_back("uid");
-      updatedKeys.push_back("userId");
-      updatedKeys.push_back("userType");
-      updatedKeys.push_back("lastUpdate");
-
-      for (JsonObject x : doc["updated"].as<JsonArray>())
-      {
-        if (is_valid_json(x, updatedKeys))
-        {
-          Uid userId = x["userId"];
-          Uid uid = x["uid"];
-          const char *userTypeName = x["userType"];     // "STUDENT" | "PROFESSOR" | "EMPLOYEE"
-          const char *lastUpdate = x["lastUpdate"]; // datatime
-          
-          UserType userType = Utils::findEnumByValue(userTypeNames, userTypeName);
-
-          Keyring keyring = daoManager->keyringDao.findByUserId(userId);
-          
-          if (keyring.isValid())
-          {
-            keyring.build(uid, userId, userType, Utils::stringToDatetime(lastUpdate));
-            daoManager->keyringDao.update(keyring);
-            Serial.print("[LOG]: keyring updated: ");
-            Serial.println(userId);
-          }
-          else
-          {
-            keyring.build(uid, userId, userType, Utils::stringToDatetime(lastUpdate));
-            daoManager->keyringDao.save(keyring);
-            Serial.print("[LOG]: keyring added: ");
-            Serial.println(userId);
-          }
-        }
-        else
-        {
-          Serial.println("[WARN]: An invalid updated result was found!");
-        }
-      }
-    }
-    else
-    {
-      Serial.println("[WARN]: Request result json was different of specification!");
-    }
-  }
   void updateInternalSchedules(String &strJson)
   {
-    // TODO: Find how to check types of JSON result
-    DynamicJsonDocument doc(2048);
-    DeserializationError error = deserializeJson(doc, strJson);
+    // // TODO: Find how to check types of JSON result
+    // DynamicJsonDocument doc(2048);
+    // DeserializationError error = deserializeJson(doc, strJson);
 
-    // Test if parsing succeeds.
-    if (error)
-    {
-      Serial.print(F("[ERROR]: deserializeJson() failed: "));
-      Serial.println(error.f_str());
-      return;
-    }
-    else if (doc.containsKey("removed") && doc.containsKey("updated"))
-    {
+    // // Test if parsing succeeds.
+    // if (error)
+    // {
+    //   Serial.print(F("[ERROR]: deserializeJson() failed: "));
+    //   Serial.println(error.f_str());
+    //   return;
+    // }
+    // else if (doc.containsKey("removed") && doc.containsKey("updated"))
+    // {
       
-      Vector<String> removedKeys;
-      removedKeys.push_back("id");
+    //   std::vector<String> removedKeys;
+    //   removedKeys.push_back("id");
       
-      for (JsonObject x : doc["removed"].as<JsonArray>())
-      {
-        if (is_valid_json(x, removedKeys))
-        {
-          Uid id = x["id"];
-          Schedule schedule = daoManager->scheduleDao.findById(id);
+    //   for (JsonObject x : doc["removed"].as<JsonArray>())
+    //   {
+    //     if (is_valid_json(x, removedKeys))
+    //     {
+    //       Uid id = x["id"];
+    //       Schedule schedule = daoManager->scheduleDao.findById(id);
 
-          if (schedule.isValid())
-          {
-            daoManager->scheduleDao.remove(id);
-            Serial.print("[LOG]: schedule removed: ");
-            Serial.println(id);
-          }
-          else
-          {
-            Serial.print("[LOG]: schedule not found to remove: ");
-            Serial.println(id);
-          }
-        }
-        else
-        {
-          Serial.println("[WARN]: An invalid removed entry was found!");
-        }
-      }
+    //       if (schedule.isValid())
+    //       {
+    //         daoManager->scheduleDao.remove(id);
+    //         Serial.print("[LOG]: schedule removed: ");
+    //         Serial.println(id);
+    //       }
+    //       else
+    //       {
+    //         Serial.print("[LOG]: schedule not found to remove: ");
+    //         Serial.println(id);
+    //       }
+    //     }
+    //     else
+    //     {
+    //       Serial.println("[WARN]: An invalid removed entry was found!");
+    //     }
+    //   }
 
-      Vector<String> updatedKeys;
-      updatedKeys.push_back("id");
-      updatedKeys.push_back("dayOfWeek");
-      updatedKeys.push_back("beginTime");
-      updatedKeys.push_back("endTime");
-      updatedKeys.push_back("userType");
-      updatedKeys.push_back("lastUpdate");
+    //   std::vector<String> updatedKeys;
+    //   updatedKeys.push_back("id");
+    //   updatedKeys.push_back("dayOfWeek");
+    //   updatedKeys.push_back("beginTime");
+    //   updatedKeys.push_back("endTime");
+    //   updatedKeys.push_back("userType");
+    //   updatedKeys.push_back("lastUpdate");
 
-      for (JsonObject x : doc["updated"].as<JsonArray>())
-      {
-        if (is_valid_json(x, updatedKeys))
-        {
-          Uid id = x["id"];
-          const char *dayOfWeek = x["dayOfWeek"];
-          const char *beginTime = x["beginTime"];   // time
-          const char *endTime = x["endTime"];       // time
-          const char *userType = x["userType"];     // "STUDENT" | "PROFESSOR" | "EMPLOYEE"
-          const char *lastUpdate = x["lastUpdate"]; // datatime
+    //   for (JsonObject x : doc["updated"].as<JsonArray>())
+    //   {
+    //     if (is_valid_json(x, updatedKeys))
+    //     {
+    //       Uid id = x["id"];
+    //       const char *dayOfWeek = x["dayOfWeek"];
+    //       const char *beginTime = x["beginTime"];   // time
+    //       const char *endTime = x["endTime"];       // time
+    //       const char *userType = x["userType"];     // "STUDENT" | "PROFESSOR" | "EMPLOYEE"
+    //       const char *lastUpdate = x["lastUpdate"]; // datatime
           
-          Schedule schedule = daoManager->scheduleDao.findById(id);
+    //       Schedule schedule = daoManager->scheduleDao.findById(id);
           
-          if (schedule.isValid())
-          {
-            schedule.build(id, Utils::findEnumByValue(dayOfWeekNames, String(dayOfWeek)), Utils::stringToDatetime(beginTime), Utils::stringToDatetime(endTime), Utils::findEnumByValue(userTypeNames, String(userType)), Utils::stringToDatetime(lastUpdate));
-            daoManager->scheduleDao.update(schedule);
-            Serial.print("[LOG]: schedule updated: ");
-            Serial.println(id);
-          }
-          else
-          {
-            schedule.build(id, Utils::findEnumByValue(dayOfWeekNames, String(dayOfWeek)), Utils::stringToDatetime(beginTime), Utils::stringToDatetime(endTime), Utils::findEnumByValue(userTypeNames, String(userType)), Utils::stringToDatetime(lastUpdate));
-            daoManager->scheduleDao.save(schedule);
-            Serial.print("[LOG]: schedule added: ");
-            Serial.println(id);
-          }
-        }
-        else
-        {
-          Serial.println("[WARN]: An invalid updated result was found!");
-        }
-      }
-    }
-    else
-    {
-      Serial.println("[WARN]: Request result json was different of specification!");
-    }
+    //       if (schedule.isValid())
+    //       {
+    //         schedule.build(id, Utils::findEnumByValue(dayOfWeekNames, String(dayOfWeek)), Utils::stringToDatetime(beginTime), Utils::stringToDatetime(endTime), Utils::findEnumByValue(userTypeNames, String(userType)), Utils::stringToDatetime(lastUpdate));
+    //         daoManager->scheduleDao.update(schedule);
+    //         Serial.print("[LOG]: schedule updated: ");
+    //         Serial.println(id);
+    //       }
+    //       else
+    //       {
+    //         schedule.build(id, Utils::findEnumByValue(dayOfWeekNames, String(dayOfWeek)), Utils::stringToDatetime(beginTime), Utils::stringToDatetime(endTime), Utils::findEnumByValue(userTypeNames, String(userType)), Utils::stringToDatetime(lastUpdate));
+    //         daoManager->scheduleDao.save(schedule);
+    //         Serial.print("[LOG]: schedule added: ");
+    //         Serial.println(id);
+    //       }
+    //     }
+    //     else
+    //     {
+    //       Serial.println("[WARN]: An invalid updated result was found!");
+    //     }
+    //   }
+    // }
+    // else
+    // {
+    //   Serial.println("[WARN]: Request result json was different of specification!");
+    // }
   }
 
   bool updateEvents()
@@ -334,14 +341,20 @@ protected:
     if (!this->networkGuard())
       return false;
 
-    Vector<String> rs;
+    std::vector<String> rs;
+    /** TODO rs.size() from type Vector was returning 0 */
+    Event event;
+    event.build(0, Utils::now(), EventType::OUT); // Create a dummy
+    rs.push_back(event.toJSON()); // Add a dummy event to ensure at least one event is sent
 
     for(Event &event : daoManager->eventDao.findAll())
     {
+      Serial.println("JSONING..");
       rs.push_back(event.toJSON());
     }
-    int code = 204;
 
+    int code = 204;
+    Serial.printf("Updating events %d..", rs.size());
     if (rs.size())
     {
       code = this->sendUpdateEventsRequest(rs);
@@ -353,6 +366,7 @@ protected:
 
     return code == 200 || code == 204;
   }
+
   bool updateSchedules()
   {
     Serial.println("Updating schedules..");
@@ -402,6 +416,7 @@ public:
   void startup()
   {
     this->startupNetwork();
+    this->lastUpdateTry = Utils::now()-60; // Set last update try to 60 seconds ago to force an update on the first run
   }
 
   void run()
@@ -414,13 +429,16 @@ public:
     // time_t represents the number of seconds from 1970 until now.
     time_t t = Utils::now();
     time_t diff = t - this->appConfig->config.lastUpdate;
-    if (diff > this->appConfig->config.updateDelay)
+    if (diff > this->appConfig->config.updateDelay && t - this->lastUpdateTry > 60)
     {
-      if(this->updateKeyrings()&&
-         this->updateSchedules() &&
-         this->updateEvents())
+      this->lastUpdateTry = t; // Update last try time
+      if(this->updateKeyrings())
+      // if(this->updateKeyrings()&&
+      //    this->updateSchedules() &&
+      //    this->updateEvents())
       {
         this->appConfig->config.lastUpdate = t;
+        this->appConfig->save();
         Serial.print("[LOG]: Last update: ");
         Serial.println(Utils::datetimeToString(t));
       }
@@ -429,7 +447,6 @@ public:
         Serial.println("[ERROR]: Fail to update keyrings, schedules or events.");
       }
     }
-
     // esp_light_sleep_start();
   }
 };

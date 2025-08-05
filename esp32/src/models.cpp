@@ -99,7 +99,7 @@ private:
   time_t lastUpdate;
 
 public:
-  static String JSON_TEMPLATE() { return "{\"userId\":$1,\"uid\":\"$2\",\"userType\":\"$3\",\"lastUpdate\":\"$4\"}"; }
+  static String JSON_TEMPLATE() { return "{\"userId\":$1,\"uid\":$2,\"userType\":\"$3\",\"lastUpdate\":\"$4\"}"; }
 
   Keyring() {}
 
@@ -261,30 +261,34 @@ class Config {
   public:
   inline static String CONFIG_PASSWORD =  "CONFIG_PASSWORD";
   inline static String BOARD_VERSION =  "BOARD_VERSION";
-  inline static String SERVER_URL =  "SERVER_URL";
+  inline static String SERVER_URL =  "SERVER_URL*";
   inline static String ROOM_NAME =  "ROOM_NAME";
   inline static String LAST_UPDATE =  "LAST_UPDATE";
-  inline static String UPDATE_DELAY =  "UPDATE_DELAY";
+  inline static String UPDATE_DELAY =  "UPDATE_DELAY*";
   inline static String RELAY_DELAY =  "RELAY_DELAY";
-  inline static String DOOR_OPENED_ALERT_DELAY =  "DOOR_OPENED_ALERT_DELAY";
+  inline static String DOOR_OPENED_ALERT_DELAY =  "DOOR_OPENED_ALERT_DELAY*";
   inline static String WIFI_SSID =  "WIFI_SSID";
   inline static String WIFI_PASSWORD =  "WIFI_PASSWORD";
   inline static String GMT_ZONE =  "GMT_ZONE";
+  inline static String NEW_CONFIG_PASSWORD =  "NEW_CONFIG_PASSWORD*";
+
+  inline static int MAX_RELAY_DELAY_FOR_MAGNETIC =  1000;
 
   int boardVersion = 1;
   String configPassword = "admin";
-  String serverURL = "http://dacomdoor.dacom:5000";
+  String serverURL = "http://dacom.cm.utfpr.edu.br:19500";
   String roomName = "CAFE";
   time_t lastUpdate = 0;
-  int updateDelay = 10;                  // seconds
-  double relayDelay = 0.1;               // seconds (fractional)
+  int updateDelay = 300;                  // seconds
+  int relayDelay = 100;                  // miliseconds
   int doorOpenedAlertDelay = 30;         // seconds
   String wifiSSID = "Jesus";
   String wifiPassword = "1593578520";
   int gmtZone = -3;                      // GMT-3 Brasília
+  String newConfigPassword = "";
 
   static String JSON_TEMPLATE() {
-    return "{\"boardVersion\":\"$1\",\"configPassword\":$2,\"serverURL\":\"$3\",\"roomName\":\"$4\",\"lastUpdate\":$5,\"updateDelay\":$6,\"relayDelay\":$7,\"doorOpenedAlertDelay\":$8,\"wifiSSID\":\"$9\",\"wifiPassword\":\"$10\",\"gmtZone\":\"$11\"}";
+    return "{\"boardVersion\":\"$1\",\"configPassword\":$2,\"serverURL\":\"$3\",\"roomName\":\"$4\",\"lastUpdate\":$5,\"updateDelay\":$6,\"relayDelay\":$7,\"doorOpenedAlertDelay\":$8,\"wifiSSID\":\"$9\",\"wifiPassword\":\"$10\",\"gmtZone\":$11}";
   }
   
   void applyConfig(const String& key, const String& value) {
@@ -294,14 +298,14 @@ class Config {
    else if (key == Config::ROOM_NAME) this->roomName = value;
    else if (key == Config::LAST_UPDATE) this->lastUpdate = value.toInt();
    else if (key == Config::UPDATE_DELAY) this->updateDelay = value.toInt();
-   else if (key == Config::RELAY_DELAY) this->relayDelay = value.toDouble();
+   else if (key == Config::RELAY_DELAY) this->relayDelay = value.toInt();
    else if (key == Config::DOOR_OPENED_ALERT_DELAY) this->doorOpenedAlertDelay = value.toInt();
    else if (key == Config::WIFI_SSID) this->wifiSSID = value;
    else if (key == Config::WIFI_PASSWORD) this->wifiPassword = value;
    else if (key == Config::GMT_ZONE) this->gmtZone = value.toInt();
+   else if (key == Config::NEW_CONFIG_PASSWORD) this->newConfigPassword = value;
    else {
-     //TODO Show in log this exception
-     throw std::exception();
+	  Serial.printf("[ERROR] Unknown config key: %s\n", key.c_str());
    }
  }
   static String toJSON(const Config *config) {
