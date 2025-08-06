@@ -91,7 +91,7 @@ public:
   void endObject() override {
     if (section == UPDATED && userId != "") {
       Keyring k = this->daoManager->keyringDao.findByUserId(userId.toInt());
-      Uid uidInt = std::stoi(uid.c_str(), nullptr, 16); // Assuming uid is in hexadecimal format
+      Uid uidInt = std::stoi(uid.c_str(), nullptr, HEX); // Assuming uid is in hexadecimal format
       UserType ut = Utils::findEnumByValue(userTypeNames, userType);
       k.build(uidInt, userId.toInt(), ut, Utils::stringToDatetime(lastUpdate));
       this->daoManager->keyringDao.save(k);

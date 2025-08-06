@@ -6,6 +6,13 @@
 #include <ctime>
 #include "utils.cpp"
 
+
+#define HEX8(i) ([](uint32_t val) -> const char* { \
+    static char buf[9]; \
+    snprintf(buf, sizeof(buf), "%08X", val); \
+    return buf; \
+}(i))
+
 class ModelBase
 {
 public:
@@ -81,7 +88,7 @@ public:
   static String toJSON(Uid uid, time_t dateTime, EventType eventType)
   {
     String json = Event::JSON_TEMPLATE();
-    json.replace("$1", String(uid));
+    json.replace("$1", String(HEX8(uid)));
     json.replace("$2", Utils::datetimeToString(dateTime));
     json.replace("$3", eventTypeNames[eventType]);
     return json;
@@ -154,7 +161,7 @@ public:
   {
     String json = Keyring::JSON_TEMPLATE();
     json.replace("$1", String(userId));
-    json.replace("$2", String(uid));
+    json.replace("$2", String(HEX8(uid)));
     json.replace("$3", userTypeNames[userType]);
     json.replace("$4", Utils::datetimeToString(lastUpdate));
     return json;
