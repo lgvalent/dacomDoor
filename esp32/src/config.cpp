@@ -104,6 +104,7 @@ public:
       request->send(200, "text/html", "<h2>Settings saved!</h2><a href='/config'>Back</a>");
     });
 
+    delay(10000);
     httpServer->begin();
     Serial.println("[CONF] HTTP server started at port 80");
   }

@@ -379,38 +379,52 @@ protected:
 
   void startupNetwork()
   {
+    // Serial.println("\n[TASK] WiFi not connected. Starting Access Point...");
+    // WiFi.mode(WIFI_AP);
+    // String apSSID = "DACOM_DOOR_" + this->appConfig->config.roomName;
+    // WiFi.softAP(apSSID.c_str()); // Sem senha
+    // Serial.printf("[TASK] AP started. SSID: %s, IP: %s\n",
+    //               apSSID.c_str(),
+    //               WiFi.softAPIP().toString().c_str());
+    // this->appConfig->setupHttpServer();
+    // return;
+
     Serial.printf("[TASK] Connecting to WiFi %s...\n", this->appConfig->config.wifiSSID);
-    WiFi.setHostname(String("DACOM DOOR " + this->appConfig->config.roomName).c_str());
+    WiFi.setHostname(String("DACOM_DOOR_" + this->appConfig->config.roomName).c_str());
     WiFi.mode(WIFI_STA);
     WiFi.begin(this->appConfig->config.wifiSSID.c_str(), this->appConfig->config.wifiPassword.c_str());
 
-    WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info) {
+    WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info)
+                 {
         Serial.printf("[TASK] WiFi connected IP:%s, GW:%s\n", WiFi.localIP().toString(), WiFi.gatewayIP().toString());
         this->updateDateTime();
-        this->appConfig->setupHttpServer();
-    }, ARDUINO_EVENT_WIFI_STA_GOT_IP);
+        this->appConfig->setupHttpServer(); }, ARDUINO_EVENT_WIFI_STA_GOT_IP);
   }
 
 public:
   AppTasks(AppConfig *appConfig) : daoManager(&DaoManager::instance()), appConfig(appConfig) {}
-  
+
   boolean hasNetwork() { return WiFi.isConnected(); }
 
   void updateDateTime()
   {
     Serial.print("[TASK] Waiting NTP synchronization...");
-    configTime(this->appConfig->config.gmtZone*3600, 0, "pool.ntp.org", "time.nist.gov");
+    configTime(this->appConfig->config.gmtZone * 3600, 0, "pool.ntp.org", "time.nist.gov");
     struct tm timeinfo;
     int retry = 0;
     const int retry_count = 10;
-    while (!getLocalTime(&timeinfo) && retry < retry_count) {
+    while (!getLocalTime(&timeinfo) && retry < retry_count)
+    {
       Serial.print(".");
       delay(1000);
       retry++;
     }
-    if (retry < retry_count) {
+    if (retry < retry_count)
+    {
       Serial.printf("\nNTP Ok: %s\n", asctime(&timeinfo));
-    } else {
+    }
+    else
+    {
       Serial.print("\n[TASK] NTP failed!\n");
     }
   }
