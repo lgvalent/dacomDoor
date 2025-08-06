@@ -56,13 +56,13 @@ class AppTasks : public ModelControlSqliteDB
 {
 protected:
   time_t lastUpdate;
-  int state = 0; // [0-3]: ["Keyrings", "Schedule", "Events"]
+  int state = 0; // [0-3] ["Keyrings", "Schedule", "Events"]
 
   int networkGuard()
   {
     if (!this->hasNetwork())
     {
-      Serial.println(F("[WARN]: Network was not connected"));
+      Serial.println(F("[WARN] Network was not connected"));
       return 1;
     }
     return 0;
@@ -78,11 +78,11 @@ protected:
     int code = http.POST(vector_to_string(result));
 
     if (code == 200)
-      Serial.println("[LOG]: All events update");
+      Serial.println("[LOG] All events update");
     else
     {
-      Serial.println("[ERROR]: Fail to update events");
-      Serial.print("[ERROR]: StatusCode: ");
+      Serial.println("[ERROR] Fail to update events");
+      Serial.print("[ERROR] StatusCode: ");
       Serial.println(code);
     }
 
@@ -104,8 +104,8 @@ protected:
     }
     else if (code != 200)
     {
-      Serial.println("[ERROR]: Fail to update schedules");
-      Serial.print("[ERROR]: StatusCode: ");
+      Serial.println("[ERROR] Fail to update schedules");
+      Serial.print("[ERROR] StatusCode: ");
       Serial.println(code);
     }
     else
@@ -131,8 +131,8 @@ protected:
     }
     else if (code != 200)
     {
-      Serial.println("[ERROR]: Fail to update schedules");
-      Serial.print("[ERROR]: StatusCode: ");
+      Serial.println("[ERROR] Fail to update schedules");
+      Serial.print("[ERROR] StatusCode: ");
       Serial.println(code);
     }
     else
@@ -238,18 +238,18 @@ protected:
           if (this->hasResult())
           {
             this->remove(keyringsModel);
-            Serial.print("[LOG]: keyring removed: ");
+            Serial.print("[LOG] keyring removed: ");
             Serial.println(userId);
           }
           else
           {
-            Serial.print("[LOG]: keyring not found to remove: ");
+            Serial.print("[LOG] keyring not found to remove: ");
             Serial.println(userId);
           }
         }
         else
         {
-          Serial.println("[WARN]: An invalid removed result was found!");
+          Serial.println("[WARN] An invalid removed result was found!");
         }
       }
 
@@ -274,25 +274,25 @@ protected:
           if (this->hasResult())
           {
             this->update(keyringsModel);
-            Serial.print("[LOG]: keyring updated: ");
+            Serial.print("[LOG] keyring updated: ");
             Serial.println(userId);
           }
           else
           {
             this->add(keyringsModel);
-            Serial.print("[LOG]: keyring added: ");
+            Serial.print("[LOG] keyring added: ");
             Serial.println(userId);
           }
         }
         else
         {
-          Serial.println("[WARN]: An invalid updated result was found!");
+          Serial.println("[WARN] An invalid updated result was found!");
         }
       }
     }
     else
     {
-      Serial.println("[WARN]: Request result json was different of specification!");
+      Serial.println("[WARN] Request result json was different of specification!");
     }
   }
   void updateInternalSchedules(String &strJson)
@@ -304,7 +304,7 @@ protected:
     // Test if parsing succeeds.
     if (error)
     {
-      Serial.print(F("[ERROR]: deserializeJson() failed: "));
+      Serial.print(F("[ERROR] deserializeJson() failed: "));
       Serial.println(error.f_str());
       return;
     }
@@ -327,18 +327,18 @@ protected:
           if (this->hasResult())
           {
             this->remove(schedulesModel);
-            Serial.print("[LOG]: schedule removed: ");
+            Serial.print("[LOG] schedule removed: ");
             Serial.println(id);
           }
           else
           {
-            Serial.print("[LOG]: schedule not found to remove: ");
+            Serial.print("[LOG] schedule not found to remove: ");
             Serial.println(id);
           }
         }
         else
         {
-          Serial.println("[WARN]: An invalid removed result was found!");
+          Serial.println("[WARN] An invalid removed result was found!");
         }
       }
 
@@ -367,25 +367,25 @@ protected:
           if (this->hasResult())
           {
             this->exec(schedulesModel.update().c_str());
-            Serial.print("[LOG]: schedule updated: ");
+            Serial.print("[LOG] schedule updated: ");
             Serial.println(id);
           }
           else
           {
             this->update(schedulesModel);
-            Serial.print("[LOG]: schedule added: ");
+            Serial.print("[LOG] schedule added: ");
             Serial.println(id);
           }
         }
         else
         {
-          Serial.println("[WARN]: An invalid updated result was found!");
+          Serial.println("[WARN] An invalid updated result was found!");
         }
       }
     }
     else
     {
-      Serial.println("[WARN]: Request result json was different of specification!");
+      Serial.println("[WARN] Request result json was different of specification!");
     }
   }
 
@@ -471,7 +471,7 @@ public:
     if (diff > UPDATE_DELAY)
     {
       int lastState = this->state;
-      Serial.print("[LOG]: Ellapse time: ");
+      Serial.print("[LOG] Ellapse time: ");
       Serial.println(diff);
 
       this->lastUpdate = t;
@@ -513,7 +513,7 @@ public:
 
   int execWithContext(const char *sql, void *ctx, int (*cb)(void *, int, char **, char **))
   {
-    Serial.println("[LOG]: Executing SQL:\n'''");
+    Serial.println("[LOG] Executing SQL:\n'''");
     Serial.println(sql);
     Serial.println("'''");
     Serial.print("\n");
@@ -529,19 +529,19 @@ public:
   int execWithContext(const char *sql, void *ctx, int (*cb)(void *, int, char **, char **))
   {
     char *zErrMsg = NULL;
-    Serial.println("[LOG]: Executing SQL:\n'''");
+    Serial.println("[LOG] Executing SQL:\n'''");
     Serial.println(sql);
     Serial.println("'''");
     long start = micros();
     int rc = sqlite3_exec(this->db, sql, cb, ctx, &zErrMsg);
     if (rc != SQLITE_OK)
     {
-      Serial.print(F("[ERROR]: SQL error "));
-      Serial.printf("[%d]:", rc);
+      Serial.print(F("[ERROR] SQL error "));
+      Serial.printf("[%d]", rc);
       Serial.println(zErrMsg);
       sqlite3_free(zErrMsg);
     }
-    Serial.print(F("[LOG]: Time taken: "));
+    Serial.print(F("[LOG] Time taken: "));
     Serial.println(micros() - start);
     Serial.print("\n");
     return rc;

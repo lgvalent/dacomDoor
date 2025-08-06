@@ -86,13 +86,13 @@ public:
     if (!this->unlocked && this->board->isLocked() && this->board->isDoorOpened())
     {
       this->board->beepNotOk();
-      Serial.println(F("[LOG]: Door opened alert!"));
+      Serial.println(F("[BOARD] Door opened alert!"));
 
       time_t t = Utils::now();
       time_t diff = t - this->lastDoorOpenTime; // seconds
       if (diff > this->appConfig->config.doorOpenedAlertDelay && !this->hasDoorOpenEvent)
       {
-          Serial.println(F("[LOG]: Door opened event registered!"));
+          Serial.println(F("[BOARD] Door opened event registered!"));
           this->hasDoorOpenEvent = true;
           this->doorlock->saveEvent(
             this->lastUid,
@@ -111,7 +111,7 @@ public:
   {
     if (this->board->isProgramButtonPushed() && this->board->isCommandButtonPushed())
     {
-      Serial.println("[LOG]: Shutdown now");
+      Serial.println("[BOARD] Shutdown now");
       this->board->beepOk();
       this->board->beepNotOk();
       this->board->beepOk();
@@ -146,12 +146,12 @@ public:
   {
     if (this->doorlock->learnUid(uid))
     {
-      Serial.println(F("[LOG]: Learned"));
+      Serial.println(F("[BOARD] Learned"));
       this->board->beepOk();
     }
     else
     {
-      Serial.println(F("[WARN]: Can't learn uid: uid already exists, or some error occurs!"));
+      Serial.println(F("[BOARD] Can't learn uid: uid already exists, or some error occurs!"));
       this->board->beepNotOk();
       this->board->beepNotOk();
     }
@@ -194,7 +194,7 @@ public:
     this->lastUid = uid;
     this->lastUidTime = Utils::now();
 
-    Serial.print("[LOG]: UID: ");
+    Serial.print("[BOARD] UID: ");
     Serial.println(uid);
 
     if (this->board->isProgramButtonPushed())

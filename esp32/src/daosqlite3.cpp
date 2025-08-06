@@ -31,7 +31,7 @@ private:
       Serial.printf("[SPIFFS] Total bytes: %d, Usados: %d, Livres: %d\n", SPIFFS.totalBytes(), SPIFFS.usedBytes(), SPIFFS.totalBytes() - SPIFFS.usedBytes());
       sqlite3_initialize();
       if(sqlite3_open(FILE_NAME, &db)){
-        Serial.printf("[ERROR]: Can't open database: %s\n", sqlite3_errmsg(db));
+        Serial.printf("[DAO ERROR] Can't open database: %s\n", sqlite3_errmsg(db));
       }
     }
     ~DBManager() {
@@ -68,11 +68,11 @@ public:
 
   bool executeSQL(const std::string& sql) {
     Serial.printf("Memória livre (heap): %u bytes\n", ESP.getFreeHeap());
-    Serial.printf("[LOG]: Executing SQL: %s\n", sql.c_str());
+    Serial.printf("[DAO] Executing SQL: %s\n", sql.c_str());
     char* errMsg = nullptr;
     int rc = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg);
     if (rc != SQLITE_OK) {
-      Serial.printf("[ERROR]: SQL error: %s\n", errMsg);
+      Serial.printf("[DAO ERROR] SQL error: %s\n", errMsg);
       sqlite3_free(errMsg);
       return false;
     }
@@ -80,39 +80,39 @@ public:
   }
 
   bool insert(const std::string& sql, const T& model, Binder binder) {
-    Serial.printf("[LOG]: Insert SQL: %s\n", sql.c_str());
+    Serial.printf("[DAO] Insert SQL: %s\n", sql.c_str());
     sqlite3_stmt* stmt;
     int code = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
     binder(stmt, model);
-    Serial.printf("[LOG]: Binder: %s\n", model.toJSON().c_str());
+    Serial.printf("[DAO] Binder: %s\n", model.toJSON().c_str());
     code = sqlite3_step(stmt) == SQLITE_DONE;
     if(!code) {
-      Serial.printf("[ERROR]: Failed to execute insert: %s\n", sqlite3_errmsg(db));
+      Serial.printf("[DAO ERROR] Failed to execute insert: %s\n", sqlite3_errmsg(db));
     }
     sqlite3_finalize(stmt);
     return code;
   }
 
   bool update(const std::string& sql, const T& model, Binder binder) {
-    Serial.printf("[LOG]: Update SQL: %s\n", sql.c_str());
+    Serial.printf("[DAO] Update SQL: %s\n", sql.c_str());
     return insert(sql, model, binder); // Same pattern
   }
 
   bool remove(const std::string& sql, Uid id) {
-    Serial.printf("[LOG]: Remove SQL: %s\n", sql.c_str());
+    Serial.printf("[DAO] Remove SQL: %s\n", sql.c_str());
     sqlite3_stmt* stmt;
     int code = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
     code = sqlite3_bind_int(stmt, 1, id);
     code = sqlite3_step(stmt) == SQLITE_DONE;
     if(!code) {
-      Serial.printf("[ERROR]: Failed to execute remove: %s\n", sqlite3_errmsg(db));
+      Serial.printf("[DAO ERROR] Failed to execute remove: %s\n", sqlite3_errmsg(db));
     }
     sqlite3_finalize(stmt);
     return code;
   }
 
   std::vector<T> queryAll(const std::string& sql, Loader loader) {
-    Serial.printf("[LOG]: QueryAll SQL: %s\n", sql.c_str());
+    Serial.printf("[DAO] QueryAll SQL: %s\n", sql.c_str());
     std::vector<T> results;
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
@@ -124,7 +124,7 @@ public:
   }
 
   void processAll(const std::string& sql, Loader loader, Processor processor) {
-    Serial.printf("[LOG]: ProcessAll SQL: %s\n", sql.c_str());
+    Serial.printf("[DAO] ProcessAll SQL: %s\n", sql.c_str());
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
     while (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -134,7 +134,7 @@ public:
   }
 
   std::vector<T> queryAll(const std::string& sql, char filterValue, Loader loader) {
-    Serial.printf("[LOG]: QueryAll filtered SQL: %s\n", sql.c_str());
+    Serial.printf("[DAO] QueryAll filtered SQL: %s\n", sql.c_str());
     std::vector<T> results;
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
@@ -147,16 +147,16 @@ public:
   }
 
   T queryOne(const std::string& sql, Uid id, Loader loader) {
-    Serial.printf("[LOG]: Executing queryOne with SQL: %s, id: %d\n", sql.c_str(), id);
+    Serial.printf("[DAO] Executing queryOne with SQL: %s, id: %d\n", sql.c_str(), id);
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
     sqlite3_bind_int(stmt, 1, id);
     T result;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
       result = loader(stmt);
-      Serial.println("[LOG]: Loader execute for the found model");
+      Serial.println("[DAO] Loader execute for the found model");
     }else{
-      Serial.printf("[ERROR]: Failed to execute queryOne: %s\n", sqlite3_errmsg(db));
+      Serial.printf("[DAO ERROR] Failed to execute queryOne: %s\n", sqlite3_errmsg(db));
     }
     sqlite3_finalize(stmt);
     return result;
@@ -245,17 +245,17 @@ public:
 
   bool save(const Event& event) {
     events.push_back(event);
-    Serial.printf("[LOG]: Event saved: %s\n", event.toJSON().c_str());
+    Serial.printf("[DAO] Event saved: %s\n", event.toJSON().c_str());
     return true;
   }
 
   std::vector<Event> findAll() {
-    Serial.printf("[LOG]: EventeDAO.FindAll: %d\n", events.size());
+    Serial.printf("[DAO] EventeDAO.FindAll: %d\n", events.size());
     return events;
   }
 
   void removeAll() {
-    Serial.println("[LOG]: Clearing all saved events...");
+    Serial.println("[DAO] Clearing all saved events...");
     events.clear();
   }
 };

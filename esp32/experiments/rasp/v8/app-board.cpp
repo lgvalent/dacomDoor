@@ -58,7 +58,7 @@ public:
     // if (this->isProgramButtonPushed() && this->isCommandButtonPushed())
     if (false)
     {
-      Serial.println("[LOG]: Shutdown now");
+      Serial.println("[LOG] Shutdown now");
       this->board->beepOk();
       this->board->beepNotOk();
       this->board->beepOk();
@@ -74,7 +74,7 @@ public:
       this->board->blinkActivityLed();
       this->board->blinkActivityLed();
       this->board->blinkActivityLed();
-      Serial.println("[LOG]: Bring RFID card closer to learn for local access");
+      Serial.println("[LOG] Bring RFID card closer to learn for local access");
     }
   }
 
@@ -91,12 +91,12 @@ public:
 
     if (wasLearned)
     {
-      Serial.println(F("[LOG]: Learned"));
+      Serial.println(F("[LOG] Learned"));
       this->board->beepOk();
     }
     else
     {
-      Serial.println(F("[WARN]: Can't learn uid: uid already exists, or some error occurs!"));
+      Serial.println(F("[WARN] Can't learn uid: uid already exists, or some error occurs!"));
       this->board->beepNotOk();
       this->board->beepNotOk();
     }
@@ -150,7 +150,7 @@ public:
     this->lastUid = &uid;
     this->lastUidTime = now();
 
-    Serial.print("[LOG]: UID: ");
+    Serial.print("[LOG] UID: ");
     Serial.println(uid);
 
     if (this->board->isProgramButtonPushed())

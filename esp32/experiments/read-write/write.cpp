@@ -11,7 +11,7 @@ void setup()
   // Initialize file system handle
   if (!SPIFFS.begin(true))
   {
-    Serial.println("[ERROR]: Failed to mount file system");
+    Serial.println("[ERROR] Failed to mount file system");
   }
   else
   {

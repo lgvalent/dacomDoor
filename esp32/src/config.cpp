@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <NimBLEDevice.h>
+#include <ESPAsyncWebServer.h>
 
 #include "models.cpp"
 #include "daosqlite3.cpp"
@@ -10,11 +11,113 @@
 class AppConfig
 {
   DaoManager *daoManager = &DaoManager::instance();
-
+  
   NimBLEServer *pServer;
   NimBLECharacteristic *pCharacteristic = nullptr;
-
+  
+  AsyncWebServer *httpServer = nullptr;
+  const char* SESSION_COOKIE = "auth";
+  int sessionId;
+  
 public:
+  void setupHttpServer()
+  {
+    httpServer = new AsyncWebServer(80);
+
+    // Página de login
+    httpServer->on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
+      String html = "<html><head><title>Login</title></head><body>";
+      html += "<h2>Login</h2>";
+      html += "<form action='/login' method='POST'>";
+      html += "Senha: <input type='password' name='password'><br>";
+      html += "<input type='submit' value='Entrar'>";
+      html += "</form></body></html>";
+      request->send(200, "text/html", html);
+    });
+
+    // Processa o login
+    httpServer->on("/login", HTTP_POST, [this](AsyncWebServerRequest *request) {
+      if (request->hasParam("password", true)) {
+        String pass = request->getParam("password", true)->value();
+        if (pass == this->config.configPassword) {
+          // Login OK → define cookie e redireciona
+          this->sessionId = random(100000, 999999);
+          AsyncWebServerResponse *response = request->beginResponse(302, "text/plain", "");
+          response->addHeader("Set-Cookie", String(SESSION_COOKIE) + "=" + String(this->sessionId) + "; Path=/");
+          response->addHeader("Location", "/config");
+          request->send(response);
+        } else {
+          request->send(403, "text/html", "<h3>Senha incorreta</h3><a href='/'>Tentar novamente</a>");
+        }
+      } else {
+        request->send(400, "text/plain", "Senha não informada");
+      }
+    });
+
+    // Página de configuração (proteção via cookie)
+    httpServer->on("/config", HTTP_GET, [this](AsyncWebServerRequest *request) {
+      if (!isAuthenticated(request)) {
+        request->redirect("/");
+        return;
+      }
+      String html = "<html><head><title>Configuração</title></head><body>";
+      html += "<h2>Configuração do Dispositivo</h2>";
+      html += "<form action='/save' method='POST'>";
+      html += "Config Password: <input type='text' name='configPassword' value='" + this->config.configPassword + "'><br>";
+      html += "Board Version: <input type='text' name='boardVersion' value='" + String(this->config.boardVersion) + "'><br>";
+      html += "Room Name: <input type='text' name='roomName' value='" + this->config.roomName + "'><br>";
+      html += "Relay Delay: <input type='number' name='relayDelay' value='" + String(this->config.relayDelay) + "'><br>";
+      html += "WiFi SSID: <input type='text' name='wifiSSID' value='" + this->config.wifiSSID + "'><br>";
+      html += "WiFi Password: <input type='password' name='wifiPassword' value='" + this->config.wifiPassword + "'><br>";
+      html += "GMT Zone: <input type='text' name='gmtZone' value='" + String(this->config.gmtZone) + "'><br>";
+      html += "Server URL*: <input type='text' name='serverURL' value='" + this->config.serverURL + "'><br>";
+      html += "Update Delay*: <input type='number' name='updateDelay' value='" + String(this->config.updateDelay) + "'><br>";
+      html += "New Config Password: <input type='text' name='newConfigPassword' value='" + String(this->config.newConfigPassword) + "'><br>";
+      html += "<input type='submit' value='Salvar'>";
+      html += "</form>* Non-persistent property</body></html>";
+      request->send(200, "text/html", html);
+    });
+
+    // Salva alterações (também protegido)
+    httpServer->on("/save", HTTP_POST, [this](AsyncWebServerRequest *request) {
+      if (!isAuthenticated(request)) {
+        request->redirect("/");
+        return;
+      }
+      int params = request->params();
+      for (int i = 0; i < params; i++) {
+        const AsyncWebParameter* p = request->getParam(i);
+        String key = p->name();
+        String value = p->value();
+        if (key == "configPassword") this->config.configPassword = value;
+        else if (key == "boardVersion") this->config.boardVersion = value.toInt();
+        else if (key == "roomName") this->config.roomName = value;
+        else if (key == "relayDelay") this->config.relayDelay = value.toInt();
+        else if (key == "wifiSSID") this->config.wifiSSID = value;
+        else if (key == "wifiPassword") this->config.wifiPassword = value;
+        else if (key == "gmtZone") this->config.gmtZone = value.toInt();
+        else if (key == "serverURL") this->config.serverURL = value;
+        else if (key == "updateDelay") this->config.updateDelay = value.toInt();
+        else if (key == "newConfigPassword") this->config.configPassword = value;
+      }
+      save();
+      request->send(200, "text/html", "<h2>Configurações salvas!</h2><a href='/config'>Voltar</a>");
+    });
+
+    httpServer->begin();
+    Serial.println("[CONF] Servidor HTTP com login iniciado na porta 80");
+  }
+
+  bool isAuthenticated(AsyncWebServerRequest *request) {
+    if (request->hasHeader("Cookie")) {
+      String cookie = request->header("Cookie");
+      if (cookie.indexOf(String(SESSION_COOKIE) + "=" + String(this->sessionId)) != -1) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   Config config;
 
   void save()
@@ -50,7 +153,7 @@ public:
   {
     void onConnect(NimBLEServer *pServer, NimBLEConnInfo &connInfo) override
     {
-      Serial.printf("Client address: %s\n", connInfo.getAddress().toString().c_str());
+      Serial.printf("[CONF] Client address: %s\n", connInfo.getAddress().toString().c_str());
 
       /**
        *  We can use the connection handle here to ask for different connection parameters.
@@ -65,19 +168,19 @@ public:
 
     void onDisconnect(NimBLEServer *pServer, NimBLEConnInfo &connInfo, int reason) override
     {
-      Serial.printf("Client disconnected - start advertising\n");
+      Serial.printf("[CONF] Client disconnected - start advertising\n");
       NimBLEDevice::startAdvertising();
     }
 
     void onMTUChange(uint16_t MTU, NimBLEConnInfo &connInfo) override
     {
-      Serial.printf("MTU updated: %u for connection ID: %u\n", MTU, connInfo.getConnHandle());
+      Serial.printf("[CONF] MTU updated: %u for connection ID: %u\n", MTU, connInfo.getConnHandle());
     }
 
     /********************* Security handled here *********************/
     uint32_t onPassKeyDisplay() override
     {
-      Serial.printf("Server Passkey Display\n");
+      Serial.printf("[CONF] Server Passkey Display\n");
       /**
        * This should return a random 6 digit number for security
        *  or make your own static passkey as done here.
@@ -87,7 +190,7 @@ public:
 
     void onConfirmPassKey(NimBLEConnInfo &connInfo, uint32_t pass_key) override
     {
-      Serial.printf("The passkey YES/NO number: %" PRIu32 "\n", pass_key);
+      Serial.printf("[CONF] The passkey YES/NO number: %" PRIu32 "\n", pass_key);
       /** Inject false if passkeys don't match. */
       NimBLEDevice::injectConfirmPasskey(connInfo, true);
     }
@@ -98,11 +201,11 @@ public:
       if (!connInfo.isEncrypted())
       {
         NimBLEDevice::getServer()->disconnect(connInfo.getConnHandle());
-        Serial.printf("Encrypt connection failed - disconnecting client\n");
+        Serial.printf("[CONF] Encrypt connection failed - disconnecting client\n");
         return;
       }
 
-      Serial.printf("Secured connection to: %s\n", connInfo.getAddress().toString().c_str());
+      Serial.printf("[CONF] Secured connection to: %s\n", connInfo.getAddress().toString().c_str());
     }
   };
   // Handler para receber comandos via BLE
@@ -111,7 +214,7 @@ public:
     AppConfig *appConfig;
     void onRead(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo) override
     {
-      Serial.printf("%s : onRead(), value: %s\n",
+      Serial.printf("[CONF] %s : onRead(), value: %s\n",
                     pCharacteristic->getUUID().toString().c_str(),
                     pCharacteristic->getValue().c_str());
     }
@@ -131,7 +234,7 @@ public:
       std::string value = pChar->getValue();
       String incoming = String(value.c_str());
       incoming.trim();
-      Serial.printf("[LOG] BLE.onWrite(), command: %s\n", incoming.c_str());
+      Serial.printf("[CONF] BLE.onWrite(), command: %s\n", incoming.c_str());
       int sep = incoming.indexOf('=');
       static Config configTemp; // Usar uma instância estática global pode causar problemas, mas aqui é seguro pois BLE callbacks são single-threaded
       if (sep > 0)
@@ -216,10 +319,8 @@ public:
 
   void startup()
   {
-    // Serial.println("SetupConfig...");
     config = this->daoManager->configDao.retrieve();
     setupBLE();
-    // Serial.println("SetupConfig___...");
   }
 };
 #endif

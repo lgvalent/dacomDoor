@@ -38,7 +38,7 @@ public:
     // if (this->isProgramButtonPushed() && this->isCommandButtonPushed())
     if (false)
     {
-      Serial.println("[LOG]: Shutdown now");
+      Serial.println("[LOG] Shutdown now");
       this->board->beepOk();
       this->board->beepNotOk();
       this->board->beepOk();
@@ -54,7 +54,7 @@ public:
       this->board->blinkActivityLed();
       this->board->blinkActivityLed();
       this->board->blinkActivityLed();
-      Serial.println("[LOG]: Bring RFID card closer to learn for local access");
+      Serial.println("[LOG] Bring RFID card closer to learn for local access");
     }
   }
 

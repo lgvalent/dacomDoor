@@ -182,7 +182,7 @@ String rfid_bytes_to_string(byte *array, byte n) {
 int db_open(const char *filename, sqlite3 **db) {
   int rc = sqlite3_open(filename, db);
   if (rc) {
-    Serial.printf("[ERROR]: Can't open database: %s\n", sqlite3_errmsg(*db));
+    Serial.printf("[ERROR] Can't open database: %s\n", sqlite3_errmsg(*db));
     return rc;
   }
   return rc;
@@ -204,18 +204,18 @@ int print_callback(void *id, int n, char **data, char **cols) {
 
 int db_exec_with(const char *sql, int (*cb)(void *, int, char **, char **)) {
   char *zErrMsg = NULL;
-  Serial.println("[LOG]: Executing SQL: '''");
+  Serial.println("[LOG] Executing SQL: '''");
   Serial.println(sql);
   Serial.println("'''");
   long start = micros();
   int rc = sqlite3_exec(db, sql, cb, NULL, &zErrMsg);
   if (rc != SQLITE_OK) {
-    Serial.print(F("[ERROR]: SQL error: "));
+    Serial.print(F("[ERROR] SQL error: "));
     Serial.println(zErrMsg);
     sqlite3_free(zErrMsg);
     db_query_error = true;
   }
-  Serial.print(F("[LOG]: Time taken: "));
+  Serial.print(F("[LOG] Time taken: "));
   Serial.println(micros() - start);
   return rc;
 }
@@ -322,7 +322,7 @@ bool reader_manage_door(String rfid) {
 
   bool result = false;
   String user_type = sql_row_get_col(&db_last_result, "tipo");
-  Serial.print("[LOG]: User type: ");
+  Serial.print("[LOG] User type: ");
   Serial.println(user_type);
 
   if (is_query_returned() && !user_type.equals(SQL_NULL)) {
@@ -356,14 +356,14 @@ void reader_save_event(String rfid, time_t current_time, String event_type) {
 void reader_check_credentials(String rfid, String event_type) {
   bool is_allowed = reader_manage_door(rfid);
   if (is_allowed) {
-    Serial.print("[LOG]: rfid allowed: [");
+    Serial.print("[LOG] rfid allowed: [");
     Serial.print(rfid);
     Serial.println("]");
 
     reader_open();
     reader_save_event(rfid, now(), event_type);
   } else {
-    Serial.print("[LOG]: rfid NOT allowed: [");
+    Serial.print("[LOG] rfid NOT allowed: [");
     Serial.print(rfid);
     Serial.println("]");
   }
@@ -465,7 +465,7 @@ void setup() {
 
   // Initialize file system handle
   if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)) {
-    Serial.println("[ERROR]: Failed to mount file system");
+    Serial.println("[ERROR] Failed to mount file system");
   }
 
   // Initialize database and create tables

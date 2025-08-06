@@ -48,10 +48,10 @@ static int callback(void *data, int argc, char **argv, char **azColName) {
 int db_open(const char *filename, sqlite3 **db) {
   int rc = sqlite3_open(filename, db);
   if (rc) {
-    Serial.printf("[ERROR]: Can't open database: %s\n", sqlite3_errmsg(*db));
+    Serial.printf("[ERROR] Can't open database: %s\n", sqlite3_errmsg(*db));
     return rc;
   } else {
-    Serial.printf("[LOG]: Opened database successfully\n");
+    Serial.printf("[LOG] Opened database successfully\n");
   }
   return rc;
 }
@@ -59,7 +59,7 @@ int db_open(const char *filename, sqlite3 **db) {
 char *zErrMsg = 0;
 const char *data = "Callback function called";
 int db_exec(sqlite3 *db, const char *sql) {
-  Serial.println(F("[LOG GROUP START]: db_exec"));
+  Serial.println(F("[LOG GROUP START] db_exec"));
   Serial.println(sql);
   long start = micros();
   int rc = sqlite3_exec(db, sql, callback, (void *)data, &zErrMsg);
@@ -71,7 +71,7 @@ int db_exec(sqlite3 *db, const char *sql) {
   }
   Serial.print(F("Time taken:"));
   Serial.println(micros() - start);
-  Serial.println(F("[LOG GROUP END]: db_exec"));
+  Serial.println(F("[LOG GROUP END] db_exec"));
   return rc;
 }
 
@@ -121,7 +121,7 @@ int initialize_database() {
   int rc;
 
   if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)) {
-    Serial.println("[ERROR]: Failed to mount file system");
+    Serial.println("[ERROR] Failed to mount file system");
     return 1;
   }
   // Remove existing database
@@ -182,7 +182,7 @@ void setup() {
 
   // Initialize database and create tables
   // if (initialize_database()) {
-  //   Serial.print("[ERROR]: Fail on initilizing database!");
+  //   Serial.print("[ERROR] Fail on initilizing database!");
   // }
 
   char *rfid = "1234";

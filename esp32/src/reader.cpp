@@ -19,7 +19,7 @@ public:
   Reader(BoardModel *boardModel): boardModel(boardModel) {}
   void startup()
   {
-    Serial.printf("[INFO]: Starting RDM6300 at %d...\n", boardModel->readerRxPin);
+    Serial.printf("[READ] Starting RDM6300 at %d...\n", boardModel->readerRxPin);
     this->rdm6300.begin(boardModel->readerRxPin);
   }
 
@@ -28,7 +28,7 @@ public:
     if (!this->rdm6300.get_new_tag_id()) 
       return UID_NULL; // No new tag detected
     else
-      Serial.println(F("[WARN]: New tag detected!"));
+      Serial.println(F("[READ] New tag detected!"));
     return this->rdm6300.get_tag_id();
   }
 

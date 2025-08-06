@@ -18,7 +18,7 @@ public:
   
   void saveEvent(const Uid uid,const EventType eventType, const time_t time)
   {
-    Serial.println(F("[LOG]: Saving event..."));
+    Serial.println(F("[LOCK] Saving event..."));
     Event event;
 
     event.build(
@@ -30,7 +30,7 @@ public:
 
   void saveKeyring(Uid uid)
   {
-    Serial.println(F("[LOG]: Saving keyring..."));
+    Serial.println(F("[LOCK] Saving keyring..."));
     Keyring keyring;
 
     keyring.build(
@@ -45,7 +45,7 @@ public:
 
   bool checkAccessType(UserType userType, time_t time)
   {
-    Serial.println(F("[LOG]: Check if user type is allowed on current schedule."));
+    Serial.println(F("[LOCK] Check if user type is allowed on current schedule."));
 
     bool isNotStudent = userType != UserType::STUDENT;
 
@@ -54,7 +54,7 @@ public:
 
   bool checkSchedule(Uid uid)
   {
-    Serial.println(F("[LOG]: Checking if uid exists on keyring."));
+    Serial.println(F("[LOCK] Checking if uid exists on keyring."));
 
     Keyring keyring = daoManager->keyringDao.findByUid(uid);
 
@@ -70,7 +70,7 @@ public:
 
   bool learnUid(Uid uid)
   {
-    Serial.println(F("[LOG]: Learning uid."));
+    Serial.println(F("[LOCK] Learning uid."));
     Keyring keyring = daoManager->keyringDao.findByUid(uid);
     if (keyring.isValid())
     {
@@ -87,14 +87,14 @@ public:
   {
     if (this->checkSchedule(uid))
     {
-      Serial.print(F("[LOG]: UID '"));
+      Serial.print(F("[LOCK] UID '"));
       Serial.print(uid);
       Serial.println(F("' allowed!"));
       return true;
     }
     else
     {
-      Serial.print(F("[LOG]: UID '"));
+      Serial.print(F("[LOCK] UID '"));
       Serial.print(uid);
       Serial.println(F("' not allowed!"));
       return false;

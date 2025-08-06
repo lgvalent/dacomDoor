@@ -119,11 +119,11 @@ public:
     int code = http.POST(vector_to_string(result));
 
     if (code == 200)
-      Serial.println("[LOG]: All events update");
+      Serial.println("[LOG] All events update");
     else
     {
-      Serial.println("[ERROR]: Fail to update events");
-      Serial.print("[ERROR]: StatusCode: ");
+      Serial.println("[ERROR] Fail to update events");
+      Serial.print("[ERROR] StatusCode: ");
       Serial.println(code);
     }
 
@@ -145,8 +145,8 @@ public:
     }
     else if (code != 200)
     {
-      Serial.println("[ERROR]: Fail to update schedules");
-      Serial.print("[ERROR]: StatusCode: ");
+      Serial.println("[ERROR] Fail to update schedules");
+      Serial.print("[ERROR] StatusCode: ");
       Serial.println(code);
     }
     else
@@ -172,8 +172,8 @@ public:
     }
     else if (code != 200)
     {
-      Serial.println("[ERROR]: Fail to update schedules");
-      Serial.print("[ERROR]: StatusCode: ");
+      Serial.println("[ERROR] Fail to update schedules");
+      Serial.print("[ERROR] StatusCode: ");
       Serial.println(code);
     }
     else
@@ -283,7 +283,7 @@ void setup()
   // Initialize file system handle
   if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED))
   {
-    Serial.println("[ERROR]: Failed to mount file system");
+    Serial.println("[ERROR] Failed to mount file system");
   }
 
   app.init();

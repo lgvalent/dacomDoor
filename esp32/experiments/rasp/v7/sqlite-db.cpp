@@ -114,7 +114,7 @@ public:
     int rc = sqlite3_open(this->filename, &this->db);
     if (rc)
     {
-      Serial.printf("[ERROR]: Can't open database: %s\n", sqlite3_errmsg(this->db));
+      Serial.printf("[ERROR] Can't open database: %s\n", sqlite3_errmsg(this->db));
       return rc;
     }
     return rc;

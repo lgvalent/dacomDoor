@@ -34,7 +34,7 @@ private:
   {
     if (!this->hasNetwork())
     {
-      Serial.println(F("[WARN]: Network was not connected"));
+      Serial.println(F("[WARN] Network was not connected"));
       return 1;
     }
     return 0;
@@ -57,11 +57,11 @@ private:
     int code = http.POST(vector_to_string(result));
 
     if (code == 200)
-      Serial.println("[LOG]: All events update");
+      Serial.println("[LOG] All events update");
     else
     {
-      Serial.println("[ERROR]: Fail to update events");
-      Serial.print("[ERROR]: StatusCode: ");
+      Serial.println("[ERROR] Fail to update events");
+      Serial.print("[ERROR] StatusCode: ");
       Serial.println(code);
     }
 
@@ -83,8 +83,8 @@ private:
     }
     else if (code != 200)
     {
-      Serial.println("[ERROR]: Fail to update schedules");
-      Serial.print("[ERROR]: StatusCode: ");
+      Serial.println("[ERROR] Fail to update schedules");
+      Serial.print("[ERROR] StatusCode: ");
       Serial.println(code);
     }
     else
@@ -110,8 +110,8 @@ private:
     }
     else if (code != 200)
     {
-      Serial.println("[ERROR]: Fail to update schedules");
-      Serial.print("[ERROR]: StatusCode: ");
+      Serial.println("[ERROR] Fail to update schedules");
+      Serial.print("[ERROR] StatusCode: ");
       Serial.println(code);
     }
     else
@@ -291,7 +291,7 @@ void setup()
   // Initialize file system handle
   if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED))
   {
-    Serial.println("[ERROR]: Failed to mount file system");
+    Serial.println("[ERROR] Failed to mount file system");
   }
 
   app.init();

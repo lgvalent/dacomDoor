@@ -48,7 +48,7 @@ protected:
   {
     if (!this->hasNetwork())
     {
-      Serial.println(F("[WARN]: Network was not connected"));
+      Serial.println(F("[WARN] Network was not connected"));
       return false;
     }
     return true;
@@ -70,13 +70,13 @@ protected:
       Serial.printf("\nNTP sincronizado: %s\n", asctime(&timeinfo));
       this->timeUpdated = true;
     } else {
-      Serial.print("\n[WARN]: Falha ao sincronizar NTP\n");
+      Serial.print("\n[WARN] Falha ao sincronizar NTP\n");
     }
   }
   bool sendUpdateEventsRequest(std::vector<String> &result)
   {
     String url = this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/events";
-    Serial.print("[LOG]: Sending events update request to: "); Serial.println(url);
+    Serial.print("[LOG] Sending events update request to: "); Serial.println(url);
   
     HTTPClient http;
     http.begin(url);
@@ -85,10 +85,10 @@ protected:
     int code = http.POST(vector_to_string(result));
 
     if (code == 200)
-      Serial.println("[LOG]: All events update");
+      Serial.println("[LOG] All events update");
     else
     {
-      Serial.printf("[ERROR]: Fail to update events. Code %d\n", code);
+      Serial.printf("[ERROR] Fail to update events. Code %d\n", code);
     }
 
     http.end();
@@ -99,7 +99,7 @@ protected:
   {
     String url = this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/schedules?lastUpdate=" + Utils::datetimeToString(this->appConfig->config.lastUpdate);
     url.replace(" ", "%20"); // URL encode spaces
-    Serial.print("[LOG]: Sending schedules update request to: "); Serial.println(url);
+    Serial.print("[LOG] Sending schedules update request to: "); Serial.println(url);
 
     HTTPClient http;
     http.begin(url);
@@ -112,8 +112,8 @@ protected:
     }
     else if (code != 200)
     {
-      Serial.println("[ERROR]: Fail to update schedules");
-      Serial.print("[ERROR]: StatusCode: ");
+      Serial.println("[ERROR] Fail to update schedules");
+      Serial.print("[ERROR] StatusCode: ");
       Serial.println(code);
     }
     else
@@ -129,7 +129,7 @@ protected:
   {
     String url = this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/keyrings?lastUpdate=" + Utils::datetimeToString(this->appConfig->config.lastUpdate);
     url.replace(" ", "%20"); // URL encode spaces
-    Serial.print("[LOG]: Sending keyrings update request to: "); Serial.println(url);
+    Serial.print("[LOG] Sending keyrings update request to: "); Serial.println(url);
     HTTPClient http;
     http.begin(url);
     http.addHeader("Content-Type", "application/json");
@@ -141,8 +141,8 @@ protected:
     }
     else if (code != 200)
     {
-      Serial.println("[ERROR]: Fail to update Keyrings");
-      Serial.print("[ERROR]: StatusCode: ");
+      Serial.println("[ERROR] Fail to update Keyrings");
+      Serial.print("[ERROR] StatusCode: ");
       Serial.println(code);
     }
     else
@@ -184,18 +184,18 @@ protected:
           if (keyring.isValid())
           {
             daoManager->keyringDao.remove(userId);
-            Serial.print("[LOG]: keyring removed: ");
+            Serial.print("[LOG] keyring removed: ");
             Serial.println(userId);
           }
           else
           {
-            Serial.print("[LOG]: keyring not found to remove: ");
+            Serial.print("[LOG] keyring not found to remove: ");
             Serial.println(userId);
           }
         }
         else
         {
-          Serial.println("[WARN]: An invalid removed entry was found!");
+          Serial.println("[WARN] An invalid removed entry was found!");
         }
       }
     }
@@ -225,26 +225,26 @@ protected:
           {
             keyring.build(uid, userId, userType, Utils::stringToDatetime(lastUpdate));
             daoManager->keyringDao.update(keyring);
-            Serial.print("[LOG]: keyring updated: ");
+            Serial.print("[LOG] keyring updated: ");
             Serial.println(userId);
           }
           else
           {
             keyring.build(uid, userId, userType, Utils::stringToDatetime(lastUpdate));
             daoManager->keyringDao.save(keyring);
-            Serial.print("[LOG]: keyring added: ");
+            Serial.print("[LOG] keyring added: ");
             Serial.println(userId);
           }
         }
         else
         {
-          Serial.println("[WARN]: An invalid updated result was found!");
+          Serial.println("[WARN] An invalid updated result was found!");
         }
       }
     }
     else
     {
-      Serial.println("[WARN]: Request result json was different of specification!");
+      Serial.println("[WARN] Request result json was different of specification!");
     }
   }
   void updateInternalSchedules(String &strJson)
@@ -256,7 +256,7 @@ protected:
     // Test if parsing succeeds.
     if (error)
     {
-      Serial.print(F("[ERROR]: deserializeJson() failed: "));
+      Serial.print(F("[ERROR] deserializeJson() failed: "));
       Serial.println(error.f_str());
       return;
     }
@@ -276,18 +276,18 @@ protected:
           if (schedule.isValid())
           {
             daoManager->scheduleDao.remove(id);
-            Serial.print("[LOG]: schedule removed: ");
+            Serial.print("[LOG] schedule removed: ");
             Serial.println(id);
           }
           else
           {
-            Serial.print("[LOG]: schedule not found to remove: ");
+            Serial.print("[LOG] schedule not found to remove: ");
             Serial.println(id);
           }
         }
         else
         {
-          Serial.println("[WARN]: An invalid removed entry was found!");
+          Serial.println("[WARN] An invalid removed entry was found!");
         }
       }
 
@@ -316,26 +316,26 @@ protected:
           {
             schedule.build(id, Utils::findEnumByValue(dayOfWeekNames, String(dayOfWeek)), Utils::stringToDatetime(beginTime), Utils::stringToDatetime(endTime), Utils::findEnumByValue(userTypeNames, String(userType)), Utils::stringToDatetime(lastUpdate));
             daoManager->scheduleDao.update(schedule);
-            Serial.print("[LOG]: schedule updated: ");
+            Serial.print("[LOG] schedule updated: ");
             Serial.println(id);
           }
           else
           {
             schedule.build(id, Utils::findEnumByValue(dayOfWeekNames, String(dayOfWeek)), Utils::stringToDatetime(beginTime), Utils::stringToDatetime(endTime), Utils::findEnumByValue(userTypeNames, String(userType)), Utils::stringToDatetime(lastUpdate));
             daoManager->scheduleDao.save(schedule);
-            Serial.print("[LOG]: schedule added: ");
+            Serial.print("[LOG] schedule added: ");
             Serial.println(id);
           }
         }
         else
         {
-          Serial.println("[WARN]: An invalid updated result was found!");
+          Serial.println("[WARN] An invalid updated result was found!");
         }
       }
     }
     else
     {
-      Serial.println("[WARN]: Request result json was different of specification!");
+      Serial.println("[WARN] Request result json was different of specification!");
     }
   }
 
@@ -440,12 +440,12 @@ public:
          this->updateEvents())
       {
         this->appConfig->config.lastUpdate = t;
-        Serial.print("[LOG]: Last update: ");
+        Serial.print("[LOG] Last update: ");
         Serial.println(Utils::datetimeToString(t));
       }
       else
       {
-        Serial.println("[ERROR]: Fail to update keyrings, schedules or events.");
+        Serial.println("[ERROR] Fail to update keyrings, schedules or events.");
       }
     }
     // esp_light_sleep_start();

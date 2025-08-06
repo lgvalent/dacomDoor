@@ -55,7 +55,7 @@ public:
 
   bool checkAccessType(String userType)
   {
-    Serial.println(F("[LOG]: Check if user type is allowed on schedule."));
+    Serial.println(F("[LOG] Check if user type is allowed on schedule."));
     bool isNotStudent = !userType.equals(UserTypeEnum::STUDENT);
 
     if (isNotStudent)
@@ -74,7 +74,7 @@ public:
 
   bool checkSchedule(String uid)
   {
-    Serial.println(F("[LOG]: Check if uid exists on keyring."));
+    Serial.println(F("[LOG] Check if uid exists on keyring."));
     this->app->exec1_(this->uidExistsInKeyring(uid).c_str());
 
     if (this->app->hasResult())
@@ -120,14 +120,14 @@ public:
 
     if (hasAccess)
     {
-      Serial.print(F("[LOG]: UID '"));
+      Serial.print(F("[LOG] UID '"));
       Serial.print(uid);
       Serial.println(F("' allowed!"));
       return true;
     }
     else
     {
-      Serial.print(F("[LOG]: UID '"));
+      Serial.print(F("[LOG] UID '"));
       Serial.print(uid);
       Serial.println(F("' not allowed!"));
       return false;

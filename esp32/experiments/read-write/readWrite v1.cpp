@@ -116,7 +116,7 @@ void setup()
   if (!SPIFFS.begin(true))
   {
     error = 1;
-    Serial.println("[ERROR]: Failed to mount file system");
+    Serial.println("[ERROR] Failed to mount file system");
   }
 
   // Wait a time to Arduino Serial Monitor opens
@@ -196,7 +196,7 @@ void loop()
         }
       }
       else
-        Serial.println("[ERROR]: Something wrong happened!");
+        Serial.println("[ERROR] Something wrong happened!");
 
       state = 3;
       readingInput.clear();

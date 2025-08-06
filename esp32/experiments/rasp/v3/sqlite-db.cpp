@@ -106,7 +106,7 @@ public:
     int rc = sqlite3_open(this->filename, &this->db);
     if (rc)
     {
-      Serial.printf("[ERROR]: Can't open database: %s\n", sqlite3_errmsg(this->db));
+      Serial.printf("[ERROR] Can't open database: %s\n", sqlite3_errmsg(this->db));
       return rc;
     }
     return rc;
@@ -117,19 +117,19 @@ public:
   int execWithContext(const char *sql, void *ctx, int (*cb)(void *, int, char **, char **))
   {
     char *zErrMsg = NULL;
-    Serial.println("[LOG]: Executing SQL:\n'''");
+    Serial.println("[LOG] Executing SQL:\n'''");
     Serial.println(sql);
     Serial.println("'''");
     long start = micros();
     int rc = sqlite3_exec(this->db, sql, cb, ctx, &zErrMsg);
     if (rc != SQLITE_OK)
     {
-      Serial.print(F("[ERROR]: SQL error "));
-      Serial.printf("[%d]:", rc);
+      Serial.print(F("[ERROR] SQL error "));
+      Serial.printf("[%d]", rc);
       Serial.println(zErrMsg);
       sqlite3_free(zErrMsg);
     }
-    Serial.print(F("[LOG]: Time taken: "));
+    Serial.print(F("[LOG] Time taken: "));
     Serial.println(micros() - start);
     Serial.print("\n");
     return rc;

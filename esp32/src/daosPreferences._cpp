@@ -295,17 +295,17 @@ public:
   }
 
   T queryOne(const std::string& sql, Uid id, Loader loader) {
-    Serial.printf("[LOG]: Executing queryOne with SQL: %s, id: %d\n", sql.c_str(), id);
+    Serial.printf("[LOG] Executing queryOne with SQL: %s, id: %d\n", sql.c_str(), id);
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
-      Serial.print("[LOG]: 1");
+      Serial.print("[LOG] 1");
     sqlite3_bind_int(stmt, 1, id);
-      Serial.print("[LOG]: 2");
+      Serial.print("[LOG] 2");
     T result;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
-      Serial.print("[LOG]: 3");
+      Serial.print("[LOG] 3");
       result = loader(stmt);
-      Serial.print("[LOG]: Loader execute for model");
+      Serial.print("[LOG] Loader execute for model");
     }
     sqlite3_finalize(stmt);
     return result;

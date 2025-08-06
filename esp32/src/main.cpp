@@ -41,7 +41,7 @@ void commandButtonCallback()
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("Booting...");
+  Serial.println("[MAIN] Booting...");
 
   appConfig = new AppConfig();
   appConfig->startup();
@@ -70,7 +70,7 @@ void setup()
       }
     }
   };
-  Serial.println("Creating multitask environment...");
+  Serial.println("[MAIN] Creating multitask environment...");
 
   xTaskCreatePinnedToCore(
     TaskWrapper::run,
@@ -103,7 +103,7 @@ void setup()
     );
   esp_sleep_enable_uart_wakeup(reader->getUartNumber()); // Enable UART wakeup for board version 6
   esp_sleep_enable_timer_wakeup(0.5 * 1000000); // Convert seconds to microseconds
-  Serial.println("Setup finished...");
+  Serial.println("[MAIN] Setup finished...");
  
   /** For tests only */
   // appConfig->config.updateDelay = INT_MAX; 

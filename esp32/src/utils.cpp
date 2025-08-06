@@ -106,7 +106,7 @@ public:
     if (result != nullptr) {
         return mktime(&ti);
     }    
-    Serial.printf("[ERROR]: Failed to parse date string: %s\n", timeStr.c_str());
+    Serial.printf("[ERROR] Failed to parse date string: %s\n", timeStr.c_str());
     return 0; 
   }
 

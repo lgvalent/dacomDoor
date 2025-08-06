@@ -99,7 +99,7 @@ void setup()
   // Initialize file system handle
   if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED))
   {
-    Serial.println("[ERROR]: Failed to mount file system");
+    Serial.println("[ERROR] Failed to mount file system");
   }
 
   // db.init();
