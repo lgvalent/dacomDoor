@@ -30,7 +30,7 @@ public:
       html += "<h2>Login</h2>";
       html += "<form action='/login' method='POST'>";
       html += "Senha: <input type='password' name='password'><br>";
-      html += "<input type='submit' value='Entrar'>";
+      html += "<input type='submit' value='Login'>";
       html += "</form></body></html>";
       request->send(200, "text/html", html);
     });
@@ -47,10 +47,10 @@ public:
           response->addHeader("Location", "/config");
           request->send(response);
         } else {
-          request->send(403, "text/html", "<h3>Senha incorreta</h3><a href='/'>Tentar novamente</a>");
+          request->send(403, "text/html", "<h3>Wrong password</h3><a href='/'>Try again</a>");
         }
       } else {
-        request->send(400, "text/plain", "Senha não informada");
+        request->send(400, "text/plain", "Password not found");
       }
     });
 
@@ -61,7 +61,7 @@ public:
         return;
       }
       String html = "<html><head><title>Configuração</title></head><body>";
-      html += "<h2>Configuração do Dispositivo</h2>";
+      html += "<h2>Device config</h2>";
       html += "<form action='/save' method='POST'>";
       html += "Config Password: <input type='text' name='configPassword' value='" + this->config.configPassword + "'><br>";
       html += "Board Version: <input type='text' name='boardVersion' value='" + String(this->config.boardVersion) + "'><br>";
@@ -101,11 +101,11 @@ public:
         else if (key == "newConfigPassword") this->config.configPassword = value;
       }
       save();
-      request->send(200, "text/html", "<h2>Configurações salvas!</h2><a href='/config'>Voltar</a>");
+      request->send(200, "text/html", "<h2>Settings saved!</h2><a href='/config'>Back</a>");
     });
 
     httpServer->begin();
-    Serial.println("[CONF] Servidor HTTP com login iniciado na porta 80");
+    Serial.println("[CONF] HTTP server started at port 80");
   }
 
   bool isAuthenticated(AsyncWebServerRequest *request) {

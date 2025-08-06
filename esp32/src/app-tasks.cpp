@@ -409,9 +409,9 @@ public:
       retry++;
     }
     if (retry < retry_count) {
-      Serial.printf("\nNTP sincronizado: %s\n", asctime(&timeinfo));
+      Serial.printf("\nNTP Ok: %s\n", asctime(&timeinfo));
     } else {
-      Serial.print("\n[TASK] Falha ao sincronizar NTP\n");
+      Serial.print("\n[TASK] NTP failed!\n");
     }
   }
 
