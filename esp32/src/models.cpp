@@ -46,19 +46,19 @@ class Event: public ModelBase
 {
 private:
   Uid uid = 0;
-  time_t time;
+  time_t dateTime;
   EventType eventType;
 public:
-  static String JSON_TEMPLATE() { return "{\"uid\":\"$1\",\"time\":\"$2\",\"eventType\":\"$3\"}"; }
+  static String JSON_TEMPLATE() { return "{\"uid\":\"$1\",\"dateTime\":\"$2\",\"eventType\":\"$3\"}"; }
 
   Event() { }
 
   bool isValid()const{return this->uid!=0;}
 
-  void build(const Uid uid, time_t time, EventType eventType)
+  void build(const Uid uid, time_t dateTime, EventType eventType)
   {
     this->setUid(uid);
-    this->setTime(time);
+    this->setTime(dateTime);
     this->setEventType(eventType);
   }
 
@@ -67,10 +67,10 @@ public:
   {
     this->uid = uid;
   }
-  time_t getTime()const{return this->time;}
-  void setTime(time_t time)
+  time_t getTime()const{return this->dateTime;}
+  void setTime(time_t dateTime)
   {
-    this->time = time;
+    this->dateTime = dateTime;
   }
   EventType getEventType()const{return this->eventType;}
   void setEventType(EventType eventType)
@@ -78,16 +78,16 @@ public:
     this->eventType = eventType;
   }
 
-  static String toJSON(Uid uid, time_t time, EventType eventType)
+  static String toJSON(Uid uid, time_t dateTime, EventType eventType)
   {
     String json = Event::JSON_TEMPLATE();
     json.replace("$1", String(uid));
-    json.replace("$2", Utils::datetimeToString(time));
+    json.replace("$2", Utils::datetimeToString(dateTime));
     json.replace("$3", eventTypeNames[eventType]);
     return json;
   }
 
-  String toJSON() const{ return Event::toJSON(this->uid, this->time, this->eventType); }
+  String toJSON() const{ return Event::toJSON(this->uid, this->dateTime, this->eventType); }
 };
 
 class Keyring : public ModelBase

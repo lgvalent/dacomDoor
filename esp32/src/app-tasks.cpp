@@ -190,7 +190,7 @@ protected:
   return true;
 }
 
-  bool sendUpdateEventsRequest(std::vector<String> &result)
+  int sendUpdateEventsRequest(std::vector<String> &result)
   {
     String url = this->appConfig->config.serverURL + "/doorlock/" + this->appConfig->config.roomName + "/events";
     Serial.print("[LOG]: Sending events update request to: "); Serial.println(url);
@@ -198,7 +198,6 @@ protected:
     HTTPClient http;
     http.begin(url);
     http.addHeader("Content-Type", "application/json");
-
     int code = http.POST(vector_to_string(result));
 
     if (code == 200)
@@ -207,10 +206,7 @@ protected:
     {
       Serial.printf("[ERROR]: Fail to update events. Code %d\n", code);
     }
-
-    http.end();
-
-    return code==200 || code==204;
+    return code;
   }
   bool sendUpdateScheduleRequest()
   {
@@ -342,19 +338,12 @@ protected:
       return false;
 
     std::vector<String> rs;
-    /** TODO rs.size() from type Vector was returning 0 */
-    Event event;
-    event.build(0, Utils::now(), EventType::OUT); // Create a dummy
-    rs.push_back(event.toJSON()); // Add a dummy event to ensure at least one event is sent
-
     for(Event &event : daoManager->eventDao.findAll())
     {
-      Serial.println("JSONING..");
       rs.push_back(event.toJSON());
     }
 
     int code = 204;
-    Serial.printf("Updating events %d..", rs.size());
     if (rs.size())
     {
       code = this->sendUpdateEventsRequest(rs);
@@ -432,7 +421,7 @@ public:
     if (diff > this->appConfig->config.updateDelay && t - this->lastUpdateTry > 60)
     {
       this->lastUpdateTry = t; // Update last try time
-      if(this->updateKeyrings())
+      if(this->updateKeyrings() && this->updateEvents())
       // if(this->updateKeyrings()&&
       //    this->updateSchedules() &&
       //    this->updateEvents())

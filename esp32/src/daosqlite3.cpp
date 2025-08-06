@@ -20,11 +20,11 @@ private:
     sqlite3* db;
 
     DBManager() {
-      if (!SPIFFS.begin(true)) {
-        Serial.println("[SPIFFS] Erro ao montar SPIFFS! Formatando...");
+      if (!SPIFFS.begin(false)) {
+        Serial.println("[SPIFFS] Error mounting! Formating...");
         SPIFFS.format();
         if (!SPIFFS.begin()) {
-          Serial.println("[SPIFFS] Não pôde ser montado nem formatado!");
+          Serial.println("[SPIFFS] Format error! Check partitions sizes!");
           // Trate erro crítico aqui
         }
       }
@@ -246,7 +246,6 @@ public:
   bool save(const Event& event) {
     events.push_back(event);
     Serial.printf("[LOG]: Event saved: %s\n", event.toJSON().c_str());
-    Serial.println(events.size());
     return true;
   }
 
