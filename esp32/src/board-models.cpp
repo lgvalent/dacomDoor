@@ -176,7 +176,7 @@ public:
   }
 
   bool isLocked() { return this->locked; }
-  bool isLightOn() { return (this->lightSensorPin > 0) && GPIO::input(this->lightSensorPin); }
+  bool isLightOn() { return (this->lightSensorPin > 0) && !GPIO::input(this->lightSensorPin); }
   bool isDoorOpened() { return (this->doorSensorPin > 0) && GPIO::input(this->doorSensorPin); }
   bool isCommandButtonPushed() { return !GPIO::input(this->pushButtonCommandPin); }
   bool isProgramButtonPushed() { return !GPIO::input(this->pushButtonProgramPin); }
