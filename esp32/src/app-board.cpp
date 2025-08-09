@@ -96,7 +96,7 @@ public:
           this->hasDoorOpenEvent = true;
           this->doorlock->saveEvent(
             this->lastUid,
-            EventType::OPENED,
+            EventType::DOOR_OPENED,
             Utils::now());
       }
     }

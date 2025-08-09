@@ -35,12 +35,12 @@ static std::unordered_map<DayOfWeek, String> dayOfWeekNames = {
   {DayOfWeek::FRIDAY, "FRIDAY"},
   {DayOfWeek::SATURDAY, "SATURDAY"}}; 
 
-enum class EventType: char{IN, OUT, OPENED};
+enum class EventType: char{IN, OUT, DOOR_OPENED};
 
 static std::unordered_map<EventType, String> eventTypeNames = { 
   {EventType::IN, "IN"},
   {EventType::OUT, "OUT"},
-  {EventType::OPENED, "OPENED"}}; 
+  {EventType::DOOR_OPENED, "DOOR_OPENED"}}; 
   
 enum class UserType: char{STUDENT, PROFESSOR, EMPLOYEE};
 
