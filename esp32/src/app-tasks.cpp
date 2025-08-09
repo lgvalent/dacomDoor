@@ -389,7 +389,7 @@ protected:
     // this->appConfig->setupHttpServer();
     // return;
 
-    Serial.printf("[TASK] Connecting to WiFi %s...\n", this->appConfig->config.wifiSSID);
+    Serial.printf("[TASK] MAC: %s Connecting to WiFi %s...\n", WiFi.macAddress().c_str(), this->appConfig->config.wifiSSID);
     WiFi.setHostname(String("DACOM_DOOR_" + this->appConfig->config.roomName).c_str());
     WiFi.mode(WIFI_STA);
     WiFi.begin(this->appConfig->config.wifiSSID.c_str(), this->appConfig->config.wifiPassword.c_str());
