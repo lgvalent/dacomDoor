@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <NimBLEDevice.h>
 #include <ESPAsyncWebServer.h>
+#include <WiFi.h>
 
 #include "models.cpp"
 #include "daosqlite3.cpp"
@@ -26,7 +27,7 @@ public:
 
     // Página de login
     httpServer->on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
-      String html = "<html><head><title>Login</title></head><body>";
+      String html = "<html><head><title>Login</title><link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css'></head><body>";
       html += "<h2>Login</h2>";
       html += "<form action='/login' method='POST'>";
       html += "Senha: <input type='password' name='password'><br>";
@@ -60,7 +61,7 @@ public:
         request->redirect("/");
         return;
       }
-      String html = "<html><head><title>Configuração</title></head><body>";
+      String html = "<html><head><title>Configuração</title><link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css'></head><body>";
       html += "<h2>Device config</h2>";
       html += "<form action='/save' method='POST'>";
       html += "Config Password: <input type='text' name='configPassword' value='" + this->config.configPassword + "'><br>";
@@ -68,13 +69,21 @@ public:
       html += "Room Name: <input type='text' name='roomName' value='" + this->config.roomName + "'><br>";
       html += "Relay Delay: <input type='number' name='relayDelay' value='" + String(this->config.relayDelay) + "'><br>";
       html += "WiFi SSID: <input type='text' name='wifiSSID' value='" + this->config.wifiSSID + "'><br>";
-      html += "WiFi Password: <input type='password' name='wifiPassword' value='" + this->config.wifiPassword + "'><br>";
+      html += "WiFi Password: <input type='text' name='wifiPassword' value='" + this->config.wifiPassword + "'><br>";
       html += "GMT Zone: <input type='text' name='gmtZone' value='" + String(this->config.gmtZone) + "'><br>";
-      html += "Server URL*: <input type='text' name='serverURL' value='" + this->config.serverURL + "'><br>";
-      html += "Update Delay*: <input type='number' name='updateDelay' value='" + String(this->config.updateDelay) + "'><br>";
-      html += "New Config Password: <input type='text' name='newConfigPassword' value='" + String(this->config.newConfigPassword) + "'><br>";
-      html += "<input type='submit' value='Salvar'>";
-      html += "</form>* Non-persistent property</body></html>";
+      html += "New Config Password: <input type='text' name='newConfigPassword' value='" + this->config.newConfigPassword + "'><br>";
+      html += "Server URL: " + this->config.serverURL + "<br>";
+      html += "Update Delay: " + String(this->config.updateDelay) + "<br>";
+      html += "Last update: " + Utils::datetimeToString(this->config.lastUpdate) + "<br>";
+      html += "MAC Addres: " + WiFi.macAddress() + "<br>";
+      html += "<input type='submit' value='Save'>";
+      html += "</form>";
+      html += "<form action='/reboot' method='GET'>";
+      html += "<input type='submit' value='Reboot'>";
+      html += "</form>";
+      html += "<form action='/format' method='GET'>";
+      html += "<input type='submit' value='Format'>";
+      html += "</form></body></html>";
       request->send(200, "text/html", html);
     });
 
@@ -104,6 +113,24 @@ public:
       request->send(200, "text/html", "<h2>Settings saved!</h2><a href='/config'>Back</a>");
     });
 
+    httpServer->on("/reboot", HTTP_GET, [this](AsyncWebServerRequest *request) {
+      if (!isAuthenticated(request)) {
+        request->redirect("/");
+        return;
+      }
+      request->send(200, "text/html", "<h2>Rebooting!</h2><a href='/config'>Back</a>");
+      this->reboot();
+    });
+
+    httpServer->on("/format", HTTP_GET, [this](AsyncWebServerRequest *request) {
+      if (!isAuthenticated(request)) {
+        request->redirect("/");
+        return;
+      }
+      request->send(200, "text/html", "<h2>Formating!</h2><a href='/config'>Back</a>");
+      this->format();
+    });
+
     delay(10000);
     httpServer->begin();
     Serial.println("[CONF] HTTP server started at port 80");
@@ -123,7 +150,22 @@ public:
 
   void save()
   {
+    if (!this->config.newConfigPassword.isEmpty())
+    {
+      this->config.configPassword = this->config.newConfigPassword;
+      this->config.newConfigPassword = ""; // Clear the new password after saving
+    }
     this->daoManager->configDao.save(config);
+  }
+
+  void reboot()
+  {
+    ESP.restart();
+  }
+
+  void format()
+  {
+    SPIFFS.format();
   }
 
   void sendConfig(Config &config)
@@ -253,7 +295,7 @@ public:
             pChar->setValue("Rebooting...");
             pChar->notify();
             delay(1000); // Espera um pouco para enviar a mensagem
-            ESP.restart();
+            this->appConfig->reboot();
          }
         }else
         if (incoming == "FORMAT")
@@ -261,7 +303,7 @@ public:
           if (this->checkPassword(configTemp.configPassword, pChar)){
             pChar->setValue("Formatting...");
             pChar->notify();
-            SPIFFS.format();
+            this->appConfig->format();
             pChar->setValue("formatted.");
          }
         }else
@@ -277,11 +319,6 @@ public:
           if (this->checkPassword(configTemp.configPassword, pChar))
           {
             this->appConfig->config = configTemp;
-            if (!this->appConfig->config.newConfigPassword.isEmpty())
-            {
-              this->appConfig->config.configPassword = this->appConfig->config.newConfigPassword;
-              this->appConfig->config.newConfigPassword = ""; // Clear the new password after saving
-            }
             this->appConfig->save();
             pChar->setValue("Saved.");
           }
@@ -325,3 +362,5 @@ public:
   }
 };
 #endif
+
+
