@@ -28,7 +28,7 @@ private:
           // Trate erro crítico aqui
         }
       }
-      Serial.printf("[SPIFFS] Total bytes: %d, Usados: %d, Livres: %d\n", SPIFFS.totalBytes(), SPIFFS.usedBytes(), SPIFFS.totalBytes() - SPIFFS.usedBytes());
+      Serial.printf("[SPIFFS] Size (bytes): %d, Used: %d, Free: %d\n", SPIFFS.totalBytes(), SPIFFS.usedBytes(), SPIFFS.totalBytes() - SPIFFS.usedBytes());
       sqlite3_initialize();
       if(sqlite3_open(FILE_NAME, &db)){
         Serial.printf("[DAO ERROR] Can't open database: %s\n", sqlite3_errmsg(db));
@@ -67,7 +67,7 @@ public:
   }
 
   bool executeSQL(const std::string& sql) {
-    Serial.printf("Memória livre (heap): %u bytes\n", ESP.getFreeHeap());
+    Serial.printf("Free memory (heap): %u bytes\n", ESP.getFreeHeap());
     Serial.printf("[DAO] Executing SQL: %s\n", sql.c_str());
     char* errMsg = nullptr;
     int rc = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg);
