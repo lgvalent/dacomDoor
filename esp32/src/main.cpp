@@ -41,7 +41,7 @@ void commandButtonCallback()
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("[MAIN] Booting...");
+  Serial.printf("[MAIN] Booting v%s...\n", AppConfig::BUILD_INFO.c_str());
 
   appConfig = new AppConfig();
   appConfig->startup();
@@ -61,6 +61,7 @@ void setup()
   appBoard->startup();
   appTasks->startup();
 
+  Serial.println("[MAIN] Creating multitask environment...");
   // Create task for appBoard->run()
   static TaskWrapper *boardTask = new TaskWrapper{
     .func = []() {
@@ -70,7 +71,6 @@ void setup()
       }
     }
   };
-  Serial.println("[MAIN] Creating multitask environment...");
 
   xTaskCreatePinnedToCore(
     TaskWrapper::run,
@@ -103,10 +103,12 @@ void setup()
     );
   esp_sleep_enable_uart_wakeup(reader->getUartNumber()); // Enable UART wakeup for board version 6
   esp_sleep_enable_timer_wakeup(0.5 * 1000000); // Convert seconds to microseconds
+  boardModel->beepNotOk(); 
+  boardModel->beepOk(); 
   Serial.println("[MAIN] Setup finished...");
  
   /** For tests only */
-  // appConfig->config.updateDelay = INT_MAX; 
+  // appConfig->config.updateDelay = 0; 
   // esp_light_sleep_start(); // Start light sleep to save power until the first event
   // Serial.println("Entering light sleep...");
 }
