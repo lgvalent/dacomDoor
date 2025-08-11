@@ -1,10 +1,16 @@
 #ifndef APP_CONFIG
 #define APP_CONFIG
 
+#define FW_VERSION "1.2.2"
+#define VERSION_URL "http://door.valentin.com.br/firmware.info"
+#define FIRMWARE_URL "http://door.valentin.com.br/firmware.bin"
+
 #include <Arduino.h>
 #include <NimBLEDevice.h>
 #include <ESPAsyncWebServer.h>
 #include <WiFi.h>
+#include <HTTPClient.h>
+#include <Update.h>
 
 #include "models.cpp"
 #include "daosqlite3.cpp"
@@ -12,32 +18,122 @@
 class AppConfig
 {
   DaoManager *daoManager = &DaoManager::instance();
-  
+
   NimBLEServer *pServer;
   NimBLECharacteristic *pCharacteristic = nullptr;
-  
+
   AsyncWebServer *httpServer = nullptr;
-  const char* SESSION_COOKIE = "auth";
+  const char *SESSION_COOKIE = "auth";
   int sessionId;
-  
+
 public:
+  inline static const String BUILD_INFO = String(FW_VERSION);
+
+  Config config;
+
+  bool checkForUpdate(bool performUpdate = false)
+  {
+    HTTPClient http;
+    http.begin(VERSION_URL);
+    int httpCode = http.GET();
+    if (httpCode == HTTP_CODE_OK)
+    {
+      String newVersion = http.getString();
+      newVersion.trim();
+      Serial.printf("[CONF] Current version: %s\n", AppConfig::BUILD_INFO.c_str());
+      Serial.printf("[CONF] Server version: %s\n", newVersion.c_str());
+
+      if (newVersion != AppConfig::BUILD_INFO)
+      {
+        Serial.println("[CONF] New version found!");
+        if (performUpdate)
+          this->performUpdate();
+        return true;
+      }
+      else
+      {
+        Serial.println("[CONF] No new version found.");
+      }
+    }
+    else
+    {
+      Serial.printf("[CONF] Fail getting new version: %d\n", httpCode);
+    }
+    return false;
+  }
+
+  bool performUpdate()
+  {
+    Serial.println("[CONF] Update started...");
+
+    HTTPClient http;
+
+    http.begin(FIRMWARE_URL);
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK)
+    {
+      Serial.printf("[CONF] Fail downloading firmware: %d\n", httpCode);
+      return false;
+    }
+
+    int contentLength = http.getSize();
+    if (contentLength <= 0)
+    {
+      Serial.println("[CONF] Firmware invalid or unknow size.");
+      http.end();
+      return false;
+    }
+
+    if (!Update.begin(contentLength))
+    {
+      Serial.println("[CONF] Fail starting update.");
+      Serial.printf("Error Update.begin(): %s\n", Update.errorString());
+      Serial.printf("Code: %d\n", Update.getError());
+      return false;
+    }
+
+    WiFiClient *stream = http.getStreamPtr();
+    size_t written = Update.writeStream(*stream);
+
+    if (written == contentLength && Update.end())
+    {
+      if (Update.isFinished())
+      {
+        Serial.println("[CONF] Update finished. Rebooting...");
+        ESP.restart();
+        return true;
+      }
+      else
+      {
+        Serial.println("[CONF] Update not finished.");
+      }
+    }
+    else
+    {
+      Serial.printf("[CONF] Update error. Bytes writyen: %u\n", written);
+    }
+    http.end();
+    return false;
+  }
+
   void setupHttpServer()
   {
     httpServer = new AsyncWebServer(80);
 
     // Página de login
-    httpServer->on("/", HTTP_GET, [this](AsyncWebServerRequest *request) {
+    httpServer->on("/", HTTP_GET, [this](AsyncWebServerRequest *request)
+                   {
       String html = "<html><head><title>Login</title><link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css'></head><body>";
       html += "<h2>Login</h2>";
       html += "<form action='/login' method='POST'>";
       html += "Senha: <input type='password' name='password'><br>";
       html += "<input type='submit' value='Login'>";
       html += "</form></body></html>";
-      request->send(200, "text/html", html);
-    });
+      request->send(200, "text/html", html); });
 
     // Processa o login
-    httpServer->on("/login", HTTP_POST, [this](AsyncWebServerRequest *request) {
+    httpServer->on("/login", HTTP_POST, [this](AsyncWebServerRequest *request)
+                   {
       if (request->hasParam("password", true)) {
         String pass = request->getParam("password", true)->value();
         if (pass == this->config.configPassword) {
@@ -52,11 +148,11 @@ public:
         }
       } else {
         request->send(400, "text/plain", "Password not found");
-      }
-    });
+      } });
 
     // Página de configuração (proteção via cookie)
-    httpServer->on("/config", HTTP_GET, [this](AsyncWebServerRequest *request) {
+    httpServer->on("/config", HTTP_GET, [this](AsyncWebServerRequest *request)
+                   {
       if (!isAuthenticated(request)) {
         request->redirect("/");
         return;
@@ -72,6 +168,7 @@ public:
       html += "WiFi Password: <input type='text' name='wifiPassword' value='" + this->config.wifiPassword + "'><br>";
       html += "GMT Zone: <input type='text' name='gmtZone' value='" + String(this->config.gmtZone) + "'><br>";
       html += "New Config Password: <input type='text' name='newConfigPassword' value='" + this->config.newConfigPassword + "'><br>";
+      html += "Build Info: " + AppConfig::BUILD_INFO + "<br>";
       html += "Server URL: " + this->config.serverURL + "<br>";
       html += "Update Delay: " + String(this->config.updateDelay) + "<br>";
       html += "Last update: " + Utils::datetimeToString(this->config.lastUpdate) + "<br>";
@@ -84,11 +181,11 @@ public:
       html += "<form action='/format' method='GET'>";
       html += "<input type='submit' value='Format'>";
       html += "</form></body></html>";
-      request->send(200, "text/html", html);
-    });
+      request->send(200, "text/html", html); });
 
     // Salva alterações (também protegido)
-    httpServer->on("/save", HTTP_POST, [this](AsyncWebServerRequest *request) {
+    httpServer->on("/save", HTTP_POST, [this](AsyncWebServerRequest *request)
+                   {
       if (!isAuthenticated(request)) {
         request->redirect("/");
         return;
@@ -110,44 +207,43 @@ public:
         else if (key == "newConfigPassword") this->config.configPassword = value;
       }
       save();
-      request->send(200, "text/html", "<h2>Settings saved!</h2><a href='/config'>Back</a>");
-    });
+      request->send(200, "text/html", "<h2>Settings saved!</h2><a href='/config'>Back</a>"); });
 
-    httpServer->on("/reboot", HTTP_GET, [this](AsyncWebServerRequest *request) {
+    httpServer->on("/reboot", HTTP_GET, [this](AsyncWebServerRequest *request)
+                   {
       if (!isAuthenticated(request)) {
         request->redirect("/");
         return;
       }
       request->send(200, "text/html", "<h2>Rebooting!</h2><a href='/config'>Back</a>");
-      this->reboot();
-    });
+      this->reboot(); });
 
-    httpServer->on("/format", HTTP_GET, [this](AsyncWebServerRequest *request) {
+    httpServer->on("/format", HTTP_GET, [this](AsyncWebServerRequest *request)
+                   {
       if (!isAuthenticated(request)) {
         request->redirect("/");
         return;
       }
       request->send(200, "text/html", "<h2>Formating!</h2><a href='/config'>Back</a>");
-      this->format();
-    });
+      this->format(); });
 
     delay(10000);
     httpServer->begin();
     Serial.println("[CONF] HTTP server started at port 80");
   }
 
-  bool isAuthenticated(AsyncWebServerRequest *request) {
-    if (request->hasHeader("Cookie")) {
+  bool isAuthenticated(AsyncWebServerRequest *request)
+  {
+    if (request->hasHeader("Cookie"))
+    {
       String cookie = request->header("Cookie");
-      if (cookie.indexOf(String(SESSION_COOKIE) + "=" + String(this->sessionId)) != -1) {
+      if (cookie.indexOf(String(SESSION_COOKIE) + "=" + String(this->sessionId)) != -1)
+      {
         return true;
       }
     }
     return false;
   }
-
-  Config config;
-
   void save()
   {
     if (!this->config.newConfigPassword.isEmpty())
@@ -175,17 +271,29 @@ public:
         Config::CONFIG_PASSWORD + "=" + config.configPassword + "\n" +
         Config::BOARD_VERSION + "=" + config.boardVersion + "\n" +
         Config::ROOM_NAME + "=" + config.roomName + "\n" +
-        Config::LAST_UPDATE+ "=" + Utils::datetimeToString(config.lastUpdate) + "\n" +
+        Config::LAST_UPDATE + "=" + Utils::datetimeToString(config.lastUpdate) + "\n" +
         Config::RELAY_DELAY + "=" + String(config.relayDelay) + "\n" +
         Config::WIFI_SSID + "=" + config.wifiSSID + "\n" +
         Config::WIFI_PASSWORD + "=" + config.wifiPassword + "\n" +
         Config::GMT_ZONE + "=" + config.gmtZone + "\n" +
-        Config::NEW_CONFIG_PASSWORD + "=" + config.newConfigPassword + "\n" +
+        Config::NEW_CONFIG_PASSWORD + "=" + config.newConfigPassword + "\n";
+    if (pCharacteristic)
+    {
+      pCharacteristic->setValue(configStr.c_str());
+    }
+  }
+
+  void sendInfo(Config &config)
+  {
+    /** MTU Detaul is 256 bytes  */
+    String configStr =
+        "VERSION=" + AppConfig::BUILD_INFO + "\n" +
+        "MAC_ADDRESS=" + WiFi.macAddress() + "\n" +
+        "IP_ADDRESS=" + WiFi.localIP().toString() + "\n" +
         Config::SERVER_URL + "=" + config.serverURL + "\n" +
         Config::UPDATE_DELAY + "=" + String(config.updateDelay) + "\n" +
         Config::DOOR_OPENED_ALERT_DELAY + "=" + String(config.doorOpenedAlertDelay) + "\n" +
         "* Non-persistent property\n";
-        
     if (pCharacteristic)
     {
       pCharacteristic->setValue(configStr.c_str());
@@ -264,7 +372,7 @@ public:
 
     bool checkPassword(const String &password, NimBLECharacteristic *pChar)
     {
-      if(this->appConfig->config.configPassword != password)
+      if (this->appConfig->config.configPassword != password)
       {
         pChar->setValue("Wrong password.");
         return false;
@@ -291,28 +399,35 @@ public:
       {
         if (incoming == "REBOOT")
         {
-          if (this->checkPassword(configTemp.configPassword, pChar)){
+          if (this->checkPassword(configTemp.configPassword, pChar))
+          {
             pChar->setValue("Rebooting...");
             pChar->notify();
             delay(1000); // Espera um pouco para enviar a mensagem
             this->appConfig->reboot();
-         }
-        }else
-        if (incoming == "FORMAT")
+          }
+        }
+        else if (incoming == "FORMAT")
         {
-          if (this->checkPassword(configTemp.configPassword, pChar)){
+          if (this->checkPassword(configTemp.configPassword, pChar))
+          {
             pChar->setValue("Formatting...");
             pChar->notify();
             this->appConfig->format();
             pChar->setValue("formatted.");
-         }
-        }else
-        if (incoming == "GET_CONFIG")
+          }
+        }
+        else if (incoming == "CONFIG")
         {
-          if (this->checkPassword(configTemp.configPassword, pChar)){
+          if (this->checkPassword(configTemp.configPassword, pChar))
+          {
             configTemp = this->appConfig->config;
             this->appConfig->sendConfig(configTemp);
           }
+        } 
+        else if (incoming == "INFO")
+        {
+          this->appConfig->sendInfo(this->appConfig->config);
         }
         else if (incoming == "SAVE")
         {
@@ -325,7 +440,7 @@ public:
         }
         else
         {
-          pChar->setValue("Invalid format. Use KEY=VALUE or GET_CONFIG");
+          pChar->setValue("Invalid format. Use KEY=VALUE or CONFIG");
         }
       }
       pChar->notify();
@@ -362,5 +477,3 @@ public:
   }
 };
 #endif
-
-

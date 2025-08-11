@@ -268,16 +268,16 @@ class Config {
   public:
   inline static String CONFIG_PASSWORD =  "CONFIG_PASSWORD";
   inline static String BOARD_VERSION =  "BOARD_VERSION";
-  inline static String SERVER_URL =  "SERVER_URL*";
   inline static String ROOM_NAME =  "ROOM_NAME";
   inline static String LAST_UPDATE =  "LAST_UPDATE";
-  inline static String UPDATE_DELAY =  "UPDATE_DELAY*";
   inline static String RELAY_DELAY =  "RELAY_DELAY";
-  inline static String DOOR_OPENED_ALERT_DELAY =  "DOOR_OPENED_ALERT_DELAY*";
   inline static String WIFI_SSID =  "WIFI_SSID";
   inline static String WIFI_PASSWORD =  "WIFI_PASSWORD";
   inline static String GMT_ZONE =  "GMT_ZONE";
   inline static String NEW_CONFIG_PASSWORD =  "NEW_CONFIG_PASSWORD*";
+  inline static String SERVER_URL =  "SERVER_URL*";
+  inline static String UPDATE_DELAY =  "UPDATE_DELAY*";
+  inline static String DOOR_OPENED_ALERT_DELAY =  "DOOR_OPENED_ALERT_DELAY*";
 
   inline static int MAX_RELAY_DELAY_FOR_MAGNETIC =  1000;
 
@@ -289,13 +289,13 @@ class Config {
   int updateDelay = 300;                  // seconds
   int relayDelay = 100;                  // miliseconds
   int doorOpenedAlertDelay = 30;         // seconds
-  String wifiSSID = "Jesus";
-  String wifiPassword = "1593578520";
+  String wifiSSID = "UTFPR-IOT";
+  String wifiPassword = "";
   int gmtZone = -3;                      // GMT-3 Brasília
   String newConfigPassword = "";
 
   static String JSON_TEMPLATE() {
-    return "{\"boardVersion\":\"$1\",\"configPassword\":$2,\"serverURL\":\"$3\",\"roomName\":\"$4\",\"lastUpdate\":$5,\"updateDelay\":$6,\"relayDelay\":$7,\"doorOpenedAlertDelay\":$8,\"wifiSSID\":\"$9\",\"wifiPassword\":\"$10\",\"gmtZone\":$11}";
+    return "{\"boardVersion\":\"$1\",\"configPassword\":\"$2\",\"serverURL\":\"$3\",\"roomName\":\"$4\",\"lastUpdate\":$5,\"updateDelay\":$6,\"relayDelay\":$7,\"doorOpenedAlertDelay\":$8,\"wifiSSID\":\"$9\",\"wifiPassword\":\"$10\",\"gmtZone\":$11}";
   }
   
   void applyConfig(const String& key, const String& value) {

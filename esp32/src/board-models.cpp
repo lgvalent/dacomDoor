@@ -121,6 +121,7 @@ public:
       ledcWriteTone(LEDC_CHANNEL_FOR_SPEAKER, frequency);
       delay(delay_time);
       ledcWriteTone(LEDC_CHANNEL_FOR_SPEAKER, 0);
+      delay(delay_time);
     }
     this->turnOffActivityLed();
   }

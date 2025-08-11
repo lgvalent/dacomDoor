@@ -159,6 +159,7 @@ protected:
     HTTPClient http;
     http.begin(url);
     http.addHeader("Content-Type", "application/json");
+    http.addHeader("local_addr", WiFi.localIP().toString());
 
     int code = http.GET();
 
@@ -187,8 +188,6 @@ protected:
       char c = stream.read();
       parser.parse(c);
     }
-
-    http.end();
     return true;
   }
 
@@ -460,6 +459,8 @@ public:
       {
         Serial.println("[TASK ERROR] Fail to update keyrings, schedules or events.");
       }
+
+      this->appConfig->checkForUpdate(true);
     }
     // esp_light_sleep_start();
   }

@@ -49,7 +49,9 @@
     "stdexcept": "cpp",
     "cinttypes": "cpp",
     "typeinfo": "cpp",
-    "iostream": "cpp"
+    "iostream": "cpp",
+    "list": "cpp",
+    "regex": "cpp"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }
