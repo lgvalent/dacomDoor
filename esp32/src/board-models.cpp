@@ -187,7 +187,7 @@ public:
     BoardModel* boardModel;
     switch(version){
       case 1 : boardModel = new BoardModel(13, 2,18, 4,15,17, 5,16);break;
-      case 2 : boardModel = new BoardModel( 5, 0, 6, 2, 1, 3, 4,20);break;
+      case 2 : boardModel = new BoardModel( 5, 1, 6, 2, 0, 3, 4,20);break;
       default: throw "Version not suportted yet!";
     }
     boardModel->startup();
