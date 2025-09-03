@@ -100,6 +100,18 @@ public:
             Utils::now());
       }
     }
+
+    if (this->unlocked && !this->board->isLightOn())
+    {
+      time_t t = Utils::now();
+      time_t diff = t - this->lastDoorOpenTime; // seconds
+      if (diff > this->appConfig->config.doorOpenedAlertDelay)
+      {
+        this->board->beepNotOk();
+        Serial.println(F("[BOARD] Door unlocked in a dark room!"));
+        this->toggleDoor(UID_NULL);
+      }
+    }
   }
 
   void shutdownNow()

@@ -207,6 +207,21 @@ public:
     );
   }
 
+  void processAll(DaoGeneric<Keyring>::Processor processor) {
+    dao.processAll(
+      "SELECT userId, uid, userType, lastUpdate FROM keyrings;",
+      [](sqlite3_stmt* stmt) {
+        Uid id = sqlite3_column_int(stmt, 0);
+        Uid uid = sqlite3_column_int(stmt, 1);
+        UserType type = static_cast<UserType>(sqlite3_column_int(stmt, 2));
+        time_t last = sqlite3_column_int64(stmt, 3);
+        Keyring m;
+        m.build(uid, id, type, last);
+        return m;
+      }
+        ,processor);
+    }
+
   Keyring findByUserId(Uid userId) {
     return dao.queryOne(
       "SELECT uid, userType, lastUpdate FROM keyrings WHERE userId=?;",

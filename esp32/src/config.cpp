@@ -183,6 +183,25 @@ public:
       html += "</form></body></html>";
       request->send(200, "text/html", html); });
 
+    // Página de configuração (proteção via cookie)
+    httpServer->on("/keyrings", HTTP_GET, [this](AsyncWebServerRequest *request)
+                   {
+      if (!isAuthenticated(request)) {
+        request->redirect("/");
+        return;
+      }
+      String json = "{";
+      for(Keyring keyring : this->daoManager->keyringDao.findAll()) {
+        if (json.length() > 1) json += ",";
+        json += "{\"uid\":\"" + String(keyring.getUid()) + ",\"userId\":" + String(keyring.getUserId()) + "}"; 
+      }
+      // this->daoManager->keyringDao.processAll([&json](Keyring& keyring) {
+      //   if (json.length() > 1) json += ",";
+      //   json += "{\"uid\":\"" + String(keyring.getUid()) + ",\"userId\":" + String(keyring.getUserId()) + "}"; 
+      // });
+      json += "}";
+      request->send(200, "application/json", json); });
+
     // Salva alterações (também protegido)
     httpServer->on("/save", HTTP_POST, [this](AsyncWebServerRequest *request)
                    {
