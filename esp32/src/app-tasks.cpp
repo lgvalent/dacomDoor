@@ -183,11 +183,12 @@ protected:
     JsonStreamingParser parser;
     parser.setListener(&handler);
 
-    while (stream.connected() && stream.available())
+    while (stream.available())
     {
       char c = stream.read();
       parser.parse(c);
     }
+    http.end();
     return true;
   }
 
