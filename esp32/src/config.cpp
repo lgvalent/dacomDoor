@@ -1,7 +1,7 @@
 #ifndef APP_CONFIG
 #define APP_CONFIG
 
-#define FW_VERSION "1.2.3"
+#define FW_VERSION "1.2.4"
 #define VERSION_URL "http://door.valentin.com.br/firmware.info"
 #define FIRMWARE_URL "http://door.valentin.com.br/firmware.bin"
 

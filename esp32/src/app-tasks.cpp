@@ -396,7 +396,7 @@ protected:
 
     WiFi.onEvent([this](arduino_event_id_t event, arduino_event_info_t info)
                  {
-        Serial.printf("[TASK] WiFi connected IP:%s, GW:%s\n", WiFi.localIP().toString(), WiFi.gatewayIP().toString());
+        Serial.printf("[TASK] WiFi connected IP:%s, GW:%s\n", WiFi.localIP().toString().c_str(), WiFi.gatewayIP().toString().c_str());
         this->updateDateTime();
         this->appConfig->setupHttpServer(); }, ARDUINO_EVENT_WIFI_STA_GOT_IP);
   }
