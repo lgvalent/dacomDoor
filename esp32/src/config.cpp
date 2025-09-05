@@ -118,9 +118,12 @@ public:
 
   void setupHttpServer()
   {
+    if (httpServer)
+      return; // Already started
+
     httpServer = new AsyncWebServer(80);
 
-    // Página de login
+    // Login page
     httpServer->on("/", HTTP_GET, [this](AsyncWebServerRequest *request)
                    {
       String html = "<html><head><title>Login</title><link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css'></head><body>";
@@ -131,7 +134,7 @@ public:
       html += "</form></body></html>";
       request->send(200, "text/html", html); });
 
-    // Processa o login
+    // Login submit
     httpServer->on("/login", HTTP_POST, [this](AsyncWebServerRequest *request)
                    {
       if (request->hasParam("password", true)) {
@@ -150,7 +153,7 @@ public:
         request->send(400, "text/plain", "Password not found");
       } });
 
-    // Página de configuração (proteção via cookie)
+    // Config page, with authentication (by cookie)
     httpServer->on("/config", HTTP_GET, [this](AsyncWebServerRequest *request)
                    {
       if (!isAuthenticated(request)) {
@@ -183,7 +186,6 @@ public:
       html += "</form></body></html>";
       request->send(200, "text/html", html); });
 
-    // Salva alterações (também protegido)
     httpServer->on("/save", HTTP_POST, [this](AsyncWebServerRequest *request)
                    {
       if (!isAuthenticated(request)) {
